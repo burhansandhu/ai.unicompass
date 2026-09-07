@@ -108,20 +108,22 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#F7F8FC] flex">
       {/* Left Sidebar (as shown in reference image) */}
-      <aside className="hidden lg:flex w-64 bg-white border-r border-[#E7EAF0] flex-col justify-between p-5 fixed h-screen top-0 left-0 z-30">
-        <div className="space-y-6">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 px-2">
-            <div className="w-8 h-8 rounded-xl bg-[#3157E8] flex items-center justify-center text-white font-bold text-base shadow-xs">
-              ✦
-            </div>
-            <span className="font-bold text-xl tracking-tight text-[#152033]">
-              UniCompass
-            </span>
-          </Link>
+      <aside className="hidden lg:flex w-64 bg-white border-r border-[#E7EAF0] flex-col justify-between fixed h-screen top-0 left-0 z-30">
+        <div className="flex flex-col">
+          {/* Logo Header (aligned with h-20 topbar) */}
+          <div className="h-20 flex items-center px-6 border-b border-[#E7EAF0]">
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="w-10 h-10 rounded-xl bg-[#3157E8] flex items-center justify-center text-white font-bold text-lg shadow-sm transition-transform group-hover:scale-105">
+                ✦
+              </div>
+              <span className="font-bold text-2xl tracking-tight text-[#152033]">
+                UniCompass
+              </span>
+            </Link>
+          </div>
 
           {/* Navigation Links */}
-          <nav className="space-y-1 text-sm font-medium">
+          <nav className="p-5 space-y-1 text-sm font-medium">
             {[
               { id: "dashboard", label: "Dashboard", icon: "📊" },
               { id: "profile", label: "My Profile", icon: "👤" },
@@ -174,32 +176,40 @@ export default function ProfilePage() {
       {/* Main Content Dashboard Area */}
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
         {/* Top Header Bar */}
-        <header className="h-18 bg-white border-b border-[#E7EAF0] px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="lg:hidden flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#3157E8] text-white flex items-center justify-center text-xs font-bold">
+        <header className="h-20 bg-white border-b border-[#E7EAF0] px-6 sm:px-10 flex items-center justify-between sticky top-0 z-20">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="lg:hidden flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#3157E8] text-white flex items-center justify-center text-sm font-bold shadow-xs">
                 ✦
               </div>
+              <span className="font-bold text-lg text-[#152033]">UniCompass</span>
             </Link>
-            <h2 className="text-base font-bold text-[#152033] hidden sm:block">
+            <h2 className="text-lg font-bold text-[#152033] hidden sm:block tracking-tight">
               Student Dashboard
             </h2>
           </div>
 
-          <div className="flex items-center gap-4">
-            <Link href="/" className="text-xs font-medium text-[#667085] hover:text-[#3157E8]">
-              Home
+          <div className="flex items-center gap-5">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-[#667085] hover:text-[#152033] hover:bg-[#F7F8FC] transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              <span>Back to Home</span>
             </Link>
-            <div className="h-4 w-px bg-[#E7EAF0]"></div>
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#EAF8F1] text-[#16A36A] border border-[#C6F0D8]">
-                ● Live Sync Active
+            <div className="h-5 w-px bg-[#E7EAF0]"></div>
+            <div className="flex items-center gap-3">
+              <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#EAF8F1] text-[#16A36A] border border-[#C6F0D8] flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#16A36A] animate-pulse"></span>
+                Live Sync Active
               </span>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => logout()}
-                className="lg:hidden text-xs"
+                className="text-xs font-semibold rounded-xl h-9 px-3.5"
               >
                 Sign Out
               </Button>

@@ -1,5 +1,11 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+function getApiBaseUrl(): string {
+  let base = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").trim();
+  base = base.replace(/\/+$/, "");
+  if (!base.endsWith("/api")) {
+    base = `${base}/api`;
+  }
+  return base;
+}
 
 export class ApiClient {
   private static getToken(): string | null {
@@ -26,7 +32,8 @@ export class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+    const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    const url = `${getApiBaseUrl()}${cleanEndpoint}`;
     const token = this.getToken();
 
     const headers: Record<string, string> = {

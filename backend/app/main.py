@@ -68,8 +68,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API Routers
+# API Routers (support both /api/auth and /auth)
 app.include_router(auth_router, prefix=settings.API_V1_STR)
+app.include_router(auth_router)
 
 
 @app.get("/", tags=["Health"])

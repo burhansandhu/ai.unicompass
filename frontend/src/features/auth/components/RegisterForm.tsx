@@ -82,34 +82,6 @@ export function RegisterForm() {
         required
       />
 
-      {/* Role Selection Tabs */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-[#152033]">Account Type</label>
-        <div className="grid grid-cols-2 gap-2 bg-[#F7F8FC] p-1 rounded-button border border-[#E7EAF0]">
-          <button
-            type="button"
-            onClick={() => setRole("student")}
-            className={`h-9 text-xs font-semibold rounded-lg transition-all ${
-              role === "student"
-                ? "bg-white text-[#3157E8] shadow-sm border border-[#E7EAF0]"
-                : "text-[#667085] hover:text-[#152033]"
-            }`}
-          >
-            🎓 Student Portal
-          </button>
-          <button
-            type="button"
-            onClick={() => setRole("admin")}
-            className={`h-9 text-xs font-semibold rounded-lg transition-all ${
-              role === "admin"
-                ? "bg-white text-[#3157E8] shadow-sm border border-[#E7EAF0]"
-                : "text-[#667085] hover:text-[#152033]"
-            }`}
-          >
-            🛡️ Admin / Counselor
-          </button>
-        </div>
-      </div>
 
       <div className="relative">
         <Input

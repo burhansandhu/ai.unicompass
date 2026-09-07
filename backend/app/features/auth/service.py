@@ -18,9 +18,9 @@ async def register_new_user(db: AsyncSession, req: RegisterRequest) -> User:
             detail="An account with this email address already exists.",
         )
 
-    # Hash password and create user
+    # Hash password and create user (public registrations are always student role)
     hashed_pwd = hash_password(req.password)
-    user_role = req.role if req.role in [UserRole.STUDENT, UserRole.ADMIN] else UserRole.STUDENT
+    user_role = UserRole.STUDENT
 
     new_user = User(
         email=normalized_email,

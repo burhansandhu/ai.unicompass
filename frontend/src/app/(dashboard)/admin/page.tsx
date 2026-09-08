@@ -304,13 +304,13 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => {
               logout();
               router.push("/admin/login");
             }}
-            className="w-full text-xs font-semibold justify-center gap-1.5 border-white/20 text-white hover:bg-white/10 hover:text-white"
+            className="w-full text-xs font-semibold justify-center gap-1.5 border border-white/20 text-white bg-white/5 hover:bg-white/10 hover:text-white"
           >
             <span>🚪</span> Sign Out Admin
           </Button>

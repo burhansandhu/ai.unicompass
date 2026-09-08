@@ -121,7 +121,10 @@ export default function CountryDetailPage() {
                   </Button>
                 </Link>
                 <Link href="/chat">
-                  <Button variant="outline" className="rounded-xl border-white/20 text-white hover:bg-white/10 px-6 h-11 font-semibold text-sm">
+                  <Button
+                    variant="ghost"
+                    className="rounded-xl bg-white/10 hover:bg-white/20 text-white hover:text-white border border-white/20 backdrop-blur-xs px-6 h-11 font-semibold text-sm transition-all shadow-xs"
+                  >
                     ✦ Ask AI Advisor
                   </Button>
                 </Link>

@@ -86,6 +86,8 @@ async def create_country(db: AsyncSession, data: CountryCreate) -> Country:
         overview=data.overview,
         currency=data.currency.upper().strip(),
         avg_cost_pkr=data.avg_cost_pkr,
+        work_hours_per_week=data.work_hours_per_week or "20 hrs / week",
+        post_study_work_visa=data.post_study_work_visa or "18 - 36 Months",
         hero_image_url=data.hero_image_url,
         popular_tag=data.popular_tag,
         is_active=data.is_active,

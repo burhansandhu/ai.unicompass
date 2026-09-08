@@ -143,11 +143,15 @@ export default function CountryDetailPage() {
               </div>
               <div className="bg-white/5 backdrop-blur-xs p-4 rounded-xl border border-white/10">
                 <div className="text-xs text-white/60">Work While Studying</div>
-                <div className="text-lg font-bold text-white mt-1">20 hrs / week</div>
+                <div className="text-lg font-bold text-white mt-1">
+                  {country.work_hours_per_week || "20 hrs / week"}
+                </div>
               </div>
               <div className="bg-white/5 backdrop-blur-xs p-4 rounded-xl border border-white/10">
                 <div className="text-xs text-white/60">Post-Study Work Visa</div>
-                <div className="text-lg font-bold text-white mt-1">18 - 36 Months</div>
+                <div className="text-lg font-bold text-white mt-1">
+                  {country.post_study_work_visa || "18 - 36 Months"}
+                </div>
               </div>
             </div>
           </div>

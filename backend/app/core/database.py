@@ -37,3 +37,10 @@ async def init_db() -> None:
     # Auto-create tables for development
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Migrate new columns safely for existing tables
+        from sqlalchemy import text
+        try:
+            await conn.execute(text("ALTER TABLE countries ADD COLUMN IF NOT EXISTS work_hours_per_week VARCHAR(50) DEFAULT '20 hrs / week';"))
+            await conn.execute(text("ALTER TABLE countries ADD COLUMN IF NOT EXISTS post_study_work_visa VARCHAR(100) DEFAULT '18 - 36 Months';"))
+        except Exception:
+            pass

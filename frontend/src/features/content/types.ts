@@ -7,6 +7,8 @@ export interface Country {
   overview: string;
   currency: string;
   avg_cost_pkr?: string;
+  work_hours_per_week?: string;
+  post_study_work_visa?: string;
   hero_image_url?: string;
   popular_tag?: string;
   is_active: boolean;
@@ -75,6 +77,8 @@ export interface CountryCreatePayload {
   overview: string;
   currency?: string;
   avg_cost_pkr?: string;
+  work_hours_per_week?: string;
+  post_study_work_visa?: string;
   hero_image_url?: string;
   popular_tag?: string;
   is_active?: boolean;
@@ -88,6 +92,8 @@ export interface CountryUpdatePayload {
   overview?: string;
   currency?: string;
   avg_cost_pkr?: string;
+  work_hours_per_week?: string;
+  post_study_work_visa?: string;
   hero_image_url?: string;
   popular_tag?: string;
   is_active?: boolean;

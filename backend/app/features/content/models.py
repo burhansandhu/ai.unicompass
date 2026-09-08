@@ -16,6 +16,8 @@ class Country(Base):
     overview = Column(Text, nullable=False)
     currency = Column(String(10), default="USD", nullable=False)
     avg_cost_pkr = Column(String(50), nullable=True)
+    work_hours_per_week = Column(String(50), nullable=True, default="20 hrs / week")
+    post_study_work_visa = Column(String(100), nullable=True, default="18 - 36 Months")
     hero_image_url = Column(String(500), nullable=True)
     popular_tag = Column(String(100), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)

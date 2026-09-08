@@ -24,6 +24,8 @@ export function CountryEditorModal({
   const [flagEmoji, setFlagEmoji] = useState(countryToEdit?.flag_emoji || "");
   const [currency, setCurrency] = useState(countryToEdit?.currency || "EUR");
   const [avgCostPkr, setAvgCostPkr] = useState(countryToEdit?.avg_cost_pkr || "");
+  const [workHoursPerWeek, setWorkHoursPerWeek] = useState(countryToEdit?.work_hours_per_week || "20 hrs / week");
+  const [postStudyWorkVisa, setPostStudyWorkVisa] = useState(countryToEdit?.post_study_work_visa || "18 - 36 Months");
   const [popularTag, setPopularTag] = useState(countryToEdit?.popular_tag || "");
   const [heroImageUrl, setHeroImageUrl] = useState(countryToEdit?.hero_image_url || "");
   const [overview, setOverview] = useState(countryToEdit?.overview || "");
@@ -74,6 +76,8 @@ export function CountryEditorModal({
       flag_emoji: flagEmoji.trim(),
       currency: currency.trim().toUpperCase() || "USD",
       avg_cost_pkr: avgCostPkr.trim() || undefined,
+      work_hours_per_week: workHoursPerWeek.trim() || undefined,
+      post_study_work_visa: postStudyWorkVisa.trim() || undefined,
       popular_tag: popularTag.trim() || undefined,
       hero_image_url: heroImageUrl.trim() || undefined,
       overview: overview.trim(),
@@ -225,6 +229,31 @@ export function CountryEditorModal({
                 placeholder="e.g. Top European Pick, Low Tuition"
                 value={popularTag}
                 onChange={(e) => setPopularTag(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Row: Work While Studying & Post-Study Work Visa */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#152033]">
+                Work While Studying Hours
+              </label>
+              <Input
+                placeholder="e.g. 20 hrs / week, 140 full days / yr"
+                value={workHoursPerWeek}
+                onChange={(e) => setWorkHoursPerWeek(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#152033]">
+                Post-Study Work Visa Duration
+              </label>
+              <Input
+                placeholder="e.g. 2 Years (Graduate Route), 18 - 36 Months"
+                value={postStudyWorkVisa}
+                onChange={(e) => setPostStudyWorkVisa(e.target.value)}
               />
             </div>
           </div>

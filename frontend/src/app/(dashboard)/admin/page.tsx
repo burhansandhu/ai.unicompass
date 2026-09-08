@@ -805,6 +805,11 @@ export default function AdminDashboardPage() {
                                     <span className="text-xs text-[#667085]">↗</span>
                                   </Link>
                                   <p className="text-xs text-[#667085] line-clamp-1 max-w-xs">{c.overview}</p>
+                                  <div className="flex items-center gap-2 mt-1 text-[11px] text-[#667085]">
+                                    <span>🕒 Work: <strong className="text-[#152033]">{c.work_hours_per_week || "20 hrs/wk"}</strong></span>
+                                    <span>•</span>
+                                    <span>🎓 Visa: <strong className="text-[#152033]">{c.post_study_work_visa || "18-36 mos"}</strong></span>
+                                  </div>
                                 </div>
                               </div>
                             </td>

@@ -10,6 +10,8 @@ class CountryBase(BaseModel):
     overview: str
     currency: str = Field(default="USD", max_length=10)
     avg_cost_pkr: Optional[str] = None
+    work_hours_per_week: Optional[str] = Field(default="20 hrs / week", max_length=50)
+    post_study_work_visa: Optional[str] = Field(default="18 - 36 Months", max_length=100)
     hero_image_url: Optional[str] = None
     popular_tag: Optional[str] = None
     is_active: bool = True
@@ -27,6 +29,8 @@ class CountryUpdate(BaseModel):
     overview: Optional[str] = None
     currency: Optional[str] = None
     avg_cost_pkr: Optional[str] = None
+    work_hours_per_week: Optional[str] = None
+    post_study_work_visa: Optional[str] = None
     hero_image_url: Optional[str] = None
     popular_tag: Optional[str] = None
     is_active: Optional[bool] = None

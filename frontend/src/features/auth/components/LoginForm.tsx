@@ -2,12 +2,13 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "../hooks/useAuth";
 
 export function LoginForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const isJustRegistered = searchParams.get("registered") === "true";
 
@@ -27,7 +28,12 @@ export function LoginForm() {
     }
 
     try {
-      await login({ email, password });
+      const user = await login({ email, password }, undefined);
+      if (user.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/profile");
+      }
     } catch {
       // Error handled in hook
     }
@@ -111,6 +117,13 @@ export function LoginForm() {
         Don&apos;t have an account?{" "}
         <Link href="/register" className="font-semibold text-[#3157E8] hover:underline">
           Create an account
+        </Link>
+      </div>
+
+      <div className="text-center text-xs text-[#667085] pt-3 border-t border-[#E7EAF0]/60">
+        Administrator or Counselor?{" "}
+        <Link href="/admin/login" className="font-semibold text-[#152033] hover:text-[#3157E8] hover:underline">
+          Sign In Here →
         </Link>
       </div>
     </form>

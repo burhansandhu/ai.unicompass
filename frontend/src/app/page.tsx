@@ -12,36 +12,42 @@ export default function HomePage() {
   const destinations = [
     {
       name: "United States",
+      slug: "usa",
       flag: "🇺🇸",
       image: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?q=80&w=800&auto=format&fit=crop",
       tag: "Top STEM & Tech",
     },
     {
       name: "United Kingdom",
+      slug: "uk",
       flag: "🇬🇧",
       image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?q=80&w=800&auto=format&fit=crop",
       tag: "1-Year Master's",
     },
     {
       name: "Canada",
+      slug: "canada",
       flag: "🇨🇦",
       image: "https://images.unsplash.com/photo-1503614472-8c93d56e92ce?q=80&w=800&auto=format&fit=crop",
       tag: "Post-Study Work",
     },
     {
       name: "Germany",
+      slug: "germany",
       flag: "🇩🇪",
       image: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?q=80&w=800&auto=format&fit=crop",
       tag: "Zero/Low Tuition",
     },
     {
       name: "Australia",
+      slug: "australia",
       flag: "🇦🇺",
       image: "https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?q=80&w=800&auto=format&fit=crop",
       tag: "Top Quality Living",
     },
     {
       name: "France",
+      slug: "france",
       flag: "🇫🇷",
       image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=800&auto=format&fit=crop",
       tag: "Global Culture & Arts",
@@ -146,6 +152,7 @@ export default function HomePage() {
   const articles = [
     {
       title: "How to Write a Perfect Statement of Purpose (SOP)",
+      slug: "how-to-write-a-perfect-statement-of-purpose",
       tag: "Guide",
       tagColor: "bg-purple-100 text-purple-700",
       image: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800&auto=format&fit=crop",
@@ -154,6 +161,7 @@ export default function HomePage() {
     },
     {
       title: "UK Student Visa Process Step by Step",
+      slug: "uk-student-visa-process-step-by-step",
       tag: "Visa",
       tagColor: "bg-blue-100 text-blue-700",
       image: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?q=80&w=800&auto=format&fit=crop",
@@ -162,6 +170,7 @@ export default function HomePage() {
     },
     {
       title: "Top 10 Fully Funded Scholarships in Europe",
+      slug: "top-10-fully-funded-scholarships-in-europe",
       tag: "Scholarship",
       tagColor: "bg-amber-100 text-amber-700",
       image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=800&auto=format&fit=crop",
@@ -170,6 +179,7 @@ export default function HomePage() {
     },
     {
       title: "How to Get Admission in Top German Universities",
+      slug: "how-to-get-admission-in-top-german-universities",
       tag: "Tips",
       tagColor: "bg-emerald-100 text-emerald-700",
       image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=800&auto=format&fit=crop",
@@ -300,7 +310,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {destinations.map((dest) => (
-              <Link href="/destinations" key={dest.name} className="group">
+              <Link href={`/destinations/${dest.slug}`} key={dest.name} className="group">
                 <Card hoverable className="p-2.5 h-full flex flex-col justify-between overflow-hidden">
                   <div className="relative w-full h-28 rounded-xl overflow-hidden mb-2.5 bg-gray-100">
                     <Image
@@ -489,37 +499,39 @@ export default function HomePage() {
                 Expert tips on visas, HEC attestation, SOP drafting, and bank balance preparation.
               </p>
             </div>
-            <Link href="/destinations" className="text-sm font-semibold text-[#3157E8] hover:underline flex items-center gap-1">
+            <Link href="/blog" className="text-sm font-semibold text-[#3157E8] hover:underline flex items-center gap-1">
               View all <span>→</span>
             </Link>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {articles.map((art) => (
-              <Card hoverable key={art.title} className="p-0 overflow-hidden flex flex-col border-[#E7EAF0]">
-                <div className="relative w-full h-44 bg-gray-100">
-                  <Image
-                    src={art.image}
-                    alt={art.title}
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute top-3 left-3">
-                    <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full ${art.tagColor}`}>
-                      {art.tag}
-                    </span>
+              <Link href={`/blog/${art.slug}`} key={art.title} className="group">
+                <Card hoverable className="p-0 overflow-hidden flex flex-col border-[#E7EAF0] h-full transition-all duration-200 group-hover:border-[#3157E8]/40 group-hover:shadow-md">
+                  <div className="relative w-full h-44 bg-gray-100 overflow-hidden">
+                    <Image
+                      src={art.image}
+                      alt={art.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-3 left-3">
+                      <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full ${art.tagColor}`}>
+                        {art.tag}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <h3 className="font-bold text-sm text-[#152033] leading-snug line-clamp-2">
-                    {art.title}
-                  </h3>
-                  <div className="mt-4 pt-3 border-t border-[#E7EAF0] flex items-center justify-between text-xs text-[#667085]">
-                    <span>{art.date}</span>
-                    <span>{art.readTime}</span>
+                  <div className="p-5 flex-1 flex flex-col justify-between">
+                    <h3 className="font-bold text-sm text-[#152033] leading-snug line-clamp-2 group-hover:text-[#3157E8] transition-colors">
+                      {art.title}
+                    </h3>
+                    <div className="mt-4 pt-3 border-t border-[#E7EAF0] flex items-center justify-between text-xs text-[#667085]">
+                      <span>{art.date}</span>
+                      <span>{art.readTime}</span>
+                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              </Link>
             ))}
           </div>
         </section>

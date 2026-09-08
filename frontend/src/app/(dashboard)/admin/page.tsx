@@ -1,16 +1,66 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { RichTextEditor } from "@/features/content/components/RichTextEditor";
+import { Post } from "@/features/content/types";
+import { getAdminPosts, deletePost } from "@/features/content/api";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "articles" | "students" | "settings">("overview");
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.role === "admin") {
+      setIsLoadingPosts(true);
+      getAdminPosts()
+        .then((data) => {
+          setPosts(data);
+          setIsLoadingPosts(false);
+        })
+        .catch(() => {
+          setIsLoadingPosts(false);
+        });
+    }
+  }, [user]);
+
+  const handleDeletePost = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this article? This action cannot be undone.")) return;
+    try {
+      await deletePost(id);
+      setPosts((prev) => prev.filter((p) => p.id !== id));
+      setNotification("Article deleted successfully.");
+      setTimeout(() => setNotification(null), 3000);
+    } catch {
+      alert("Failed to delete article.");
+    }
+  };
+
+  const handlePostSaved = (savedPost: Post) => {
+    setPosts((prev) => {
+      const idx = prev.findIndex((p) => p.id === savedPost.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = savedPost;
+        return next;
+      }
+      return [savedPost, ...prev];
+    });
+    setIsEditorOpen(false);
+    setEditingPost(null);
+    setNotification(editingPost ? "Article updated successfully!" : "New article published successfully!");
+    setTimeout(() => setNotification(null), 3500);
+  };
 
   if (isLoading) {
     return (
@@ -90,8 +140,8 @@ export default function AdminDashboardPage() {
     },
     {
       title: "Published Articles & Guides",
-      count: "24",
-      change: "4 in review",
+      count: posts.length > 0 ? posts.length.toString() : "3",
+      change: "Live in DB",
       icon: "📝",
       iconBg: "bg-emerald-50 text-emerald-600",
     },
@@ -336,7 +386,10 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Button
-                    onClick={() => setActiveTab("articles")}
+                    onClick={() => {
+                      setEditingPost(null);
+                      setIsEditorOpen(true);
+                    }}
                     className="bg-[#3157E8] hover:bg-[#2544BA] text-white rounded-xl text-sm font-semibold h-11 px-5"
                   >
                     ✍️ Create Article
@@ -473,6 +526,16 @@ export default function AdminDashboardPage() {
             </>
           )}
 
+          {notification && (
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between animate-fadeIn">
+              <div className="flex items-center gap-2">
+                <span>✅</span>
+                <span>{notification}</span>
+              </div>
+              <button onClick={() => setNotification(null)} className="text-emerald-700 hover:text-emerald-900">✕</button>
+            </div>
+          )}
+
           {activeTab === "articles" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -484,63 +547,126 @@ export default function AdminDashboardPage() {
                     Manage articles, visa walkthroughs, and scholarship announcements published on the live website.
                   </p>
                 </div>
-                <Button className="rounded-xl bg-[#3157E8] hover:bg-[#2544BA] text-white">
+                <Button
+                  onClick={() => {
+                    setEditingPost(null);
+                    setIsEditorOpen(true);
+                  }}
+                  className="rounded-xl bg-[#3157E8] hover:bg-[#2544BA] text-white"
+                >
                   + Add New Article
                 </Button>
               </div>
 
               <Card className="border border-[#E7EAF0] overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-[#F7F8FC] border-b border-[#E7EAF0] text-xs font-bold text-[#667085] uppercase tracking-wider">
-                      <tr>
-                        <th className="px-5 py-3">Article Title</th>
-                        <th className="px-5 py-3">Category</th>
-                        <th className="px-5 py-3">Author</th>
-                        <th className="px-5 py-3">Views</th>
-                        <th className="px-5 py-3">Status</th>
-                        <th className="px-5 py-3 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#E7EAF0]">
-                      {publishedArticles.map((art, idx) => (
-                        <tr key={idx} className="hover:bg-[#F7F8FC]/50 transition-colors">
-                          <td className="px-5 py-4 font-semibold text-[#152033] max-w-md">
-                            {art.title}
-                          </td>
-                          <td className="px-5 py-4 text-xs">
-                            <span className="px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 font-medium">
-                              {art.category}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 text-xs text-[#667085]">
-                            {art.author}
-                          </td>
-                          <td className="px-5 py-4 text-xs font-semibold text-[#152033]">
-                            {art.views}
-                          </td>
-                          <td className="px-5 py-4">
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EAF8F1] text-[#16A36A] border border-[#C6F0D8]">
-                              ● {art.status}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button className="text-xs font-semibold text-[#3157E8] hover:underline px-2 py-1">
-                                Edit
-                              </button>
-                              <button className="text-xs font-semibold text-red-600 hover:underline px-2 py-1">
-                                Delete
-                              </button>
-                            </div>
-                          </td>
+                  {isLoadingPosts ? (
+                    <div className="py-12 flex flex-col items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3157E8]"></div>
+                      <span className="text-xs text-[#667085]">Loading articles from database...</span>
+                    </div>
+                  ) : posts.length > 0 ? (
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-[#F7F8FC] border-b border-[#E7EAF0] text-xs font-bold text-[#667085] uppercase tracking-wider">
+                        <tr>
+                          <th className="px-5 py-3">Article Title</th>
+                          <th className="px-5 py-3">Category / Country</th>
+                          <th className="px-5 py-3">Author</th>
+                          <th className="px-5 py-3">Views</th>
+                          <th className="px-5 py-3">Status</th>
+                          <th className="px-5 py-3 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-[#E7EAF0]">
+                        {posts.map((art) => (
+                          <tr key={art.id} className="hover:bg-[#F7F8FC]/50 transition-colors">
+                            <td className="px-5 py-4 font-semibold text-[#152033] max-w-md">
+                              <Link
+                                href={`/blog/${art.slug}`}
+                                target="_blank"
+                                className="hover:text-[#3157E8] transition-colors"
+                              >
+                                {art.title} ↗
+                              </Link>
+                            </td>
+                            <td className="px-5 py-4 text-xs">
+                              <span className="px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 font-medium">
+                                {art.category}
+                              </span>
+                              {art.country && (
+                                <span className="ml-1 text-[#667085]">({art.country.flag_emoji} {art.country.name})</span>
+                              )}
+                            </td>
+                            <td className="px-5 py-4 text-xs text-[#667085]">
+                              {art.author?.full_name || "Admin"}
+                            </td>
+                            <td className="px-5 py-4 text-xs font-semibold text-[#152033]">
+                              {art.views_count}
+                            </td>
+                            <td className="px-5 py-4">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                                  art.is_published
+                                    ? "bg-[#EAF8F1] text-[#16A36A] border-[#C6F0D8]"
+                                    : "bg-gray-100 text-gray-600 border-gray-200"
+                                }`}
+                              >
+                                ● {art.is_published ? "Published" : "Draft"}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                              <div className="flex items-center justify-end gap-3">
+                                <button
+                                  onClick={() => {
+                                    setEditingPost(art);
+                                    setIsEditorOpen(true);
+                                  }}
+                                  className="text-xs font-semibold text-[#3157E8] hover:underline"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeletePost(art.id)}
+                                  className="text-xs font-semibold text-red-600 hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="text-center py-12">
+                      <p className="text-sm text-[#667085]">No articles found in the database.</p>
+                      <Button
+                        onClick={() => {
+                          setEditingPost(null);
+                          setIsEditorOpen(true);
+                        }}
+                        size="sm"
+                        className="mt-3 rounded-xl"
+                      >
+                        + Create First Article
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </Card>
             </div>
+          )}
+
+          {/* Modal RichTextEditor */}
+          {isEditorOpen && (
+            <RichTextEditor
+              postToEdit={editingPost}
+              onSuccess={handlePostSaved}
+              onCancel={() => {
+                setIsEditorOpen(false);
+                setEditingPost(null);
+              }}
+            />
           )}
 
           {activeTab === "students" && (

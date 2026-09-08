@@ -4,18 +4,33 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.core.database import init_db
+from app.core.database import init_db, AsyncSessionLocal
+from app.core.constants import UserRole
+from app.features.users.models import User
+from app.features.content.models import Country, Post
+from app.features.content.service import seed_content_if_empty
 from app.features.auth.router import router as auth_router
+from app.features.content.router import router as content_router
+from sqlalchemy import select
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize database tables on startup
+    # Initialize database tables and seed initial content on startup
     try:
         await init_db()
         print("[UniCompass] Database initialized successfully.")
+        async with AsyncSessionLocal() as session:
+            admin_res = await session.execute(
+                select(User.id).where(User.role == UserRole.ADMIN).limit(1)
+            )
+            admin_id = admin_res.scalar_one_or_none()
+            if not admin_id:
+                user_res = await session.execute(select(User.id).limit(1))
+                admin_id = user_res.scalar_one_or_none() or 1
+            await seed_content_if_empty(session, admin_user_id=admin_id)
     except Exception as e:
-        print(f"[UniCompass] Warning: DB init failed: {e}. Ensure DATABASE_URL is reachable.")
+        print(f"[UniCompass] Warning: DB init/seed failed: {e}.")
     yield
 
 
@@ -68,9 +83,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API Routers (support both /api/auth and /auth)
+# API Routers (support both /api and root)
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(auth_router)
+app.include_router(content_router, prefix=settings.API_V1_STR)
+app.include_router(content_router)
 
 
 @app.get("/", tags=["Health"])

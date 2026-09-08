@@ -8,6 +8,7 @@ from app.features.users.models import User
 from app.features.content.schemas import (
     CountryRead,
     CountryCreate,
+    CountryUpdate,
     CountryDetail,
     PostRead,
     PostCreate,
@@ -17,6 +18,9 @@ from app.features.content.service import (
     get_active_countries,
     get_country_by_slug,
     create_country,
+    get_all_countries_for_admin,
+    update_country,
+    delete_country,
     get_published_posts,
     get_post_by_slug,
     get_all_posts_for_admin,
@@ -112,6 +116,16 @@ async def admin_delete_post(
     return await delete_post(db, post_id=post_id)
 
 
+@router.get(
+    "/admin/countries",
+    response_model=List[CountryRead],
+    summary="Admin CMS: List all study destinations (including inactive)",
+    dependencies=[Depends(require_role([UserRole.ADMIN]))],
+)
+async def admin_list_countries(db: AsyncSession = Depends(get_db)):
+    return await get_all_countries_for_admin(db)
+
+
 @router.post(
     "/countries",
     response_model=CountryRead,
@@ -124,3 +138,29 @@ async def admin_create_country(
     db: AsyncSession = Depends(get_db),
 ):
     return await create_country(db, data=payload)
+
+
+@router.put(
+    "/countries/{country_id}",
+    response_model=CountryRead,
+    summary="Admin CMS: Update destination country information",
+    dependencies=[Depends(require_role([UserRole.ADMIN]))],
+)
+async def admin_update_country(
+    country_id: int,
+    payload: CountryUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    return await update_country(db, country_id=country_id, data=payload)
+
+
+@router.delete(
+    "/countries/{country_id}",
+    summary="Admin CMS: Delete a destination country",
+    dependencies=[Depends(require_role([UserRole.ADMIN]))],
+)
+async def admin_delete_country(
+    country_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    return await delete_country(db, country_id=country_id)

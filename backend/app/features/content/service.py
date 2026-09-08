@@ -96,6 +96,52 @@ async def create_country(db: AsyncSession, data: CountryCreate) -> Country:
     return country
 
 
+async def get_all_countries_for_admin(db: AsyncSession) -> List[Country]:
+    query = select(Country).order_by(Country.name)
+    result = await db.execute(query)
+    return list(result.scalars().all())
+
+
+async def update_country(db: AsyncSession, country_id: int, data: CountryUpdate) -> Country:
+    country = await db.get(Country, country_id)
+    if not country:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Country with ID {country_id} not found.",
+        )
+
+    update_dict = data.model_dump(exclude_unset=True)
+    if "name" in update_dict and update_dict["name"] != country.name and "slug" not in update_dict:
+        update_dict["slug"] = await generate_unique_country_slug(db, update_dict["name"], current_id=country_id)
+    elif "slug" in update_dict and update_dict["slug"]:
+        update_dict["slug"] = await generate_unique_country_slug(db, update_dict["slug"], current_id=country_id)
+
+    if "code" in update_dict and update_dict["code"]:
+        update_dict["code"] = update_dict["code"].upper().strip()
+
+    if "currency" in update_dict and update_dict["currency"]:
+        update_dict["currency"] = update_dict["currency"].upper().strip()
+
+    for key, value in update_dict.items():
+        setattr(country, key, value)
+
+    await db.commit()
+    await db.refresh(country)
+    return country
+
+
+async def delete_country(db: AsyncSession, country_id: int) -> dict:
+    country = await db.get(Country, country_id)
+    if not country:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Country with ID {country_id} not found.",
+        )
+    await db.delete(country)
+    await db.commit()
+    return {"message": f"Country '{country.name}' deleted successfully."}
+
+
 # --- Post Services ---
 
 async def get_published_posts(

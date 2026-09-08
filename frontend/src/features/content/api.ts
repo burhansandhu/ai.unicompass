@@ -2,6 +2,8 @@ import { ApiClient } from "@/lib/api-client";
 import {
   Country,
   CountryDetail,
+  CountryCreatePayload,
+  CountryUpdatePayload,
   Post,
   PostCreatePayload,
   PostUpdatePayload,
@@ -9,6 +11,22 @@ import {
 
 export async function getCountries(): Promise<Country[]> {
   return ApiClient.get<Country[]>("/content/countries");
+}
+
+export async function getAdminCountries(): Promise<Country[]> {
+  return ApiClient.get<Country[]>("/content/admin/countries");
+}
+
+export async function createCountry(payload: CountryCreatePayload): Promise<Country> {
+  return ApiClient.post<Country>("/content/countries", payload);
+}
+
+export async function updateCountry(id: number, payload: CountryUpdatePayload): Promise<Country> {
+  return ApiClient.put<Country>(`/content/countries/${id}`, payload);
+}
+
+export async function deleteCountry(id: number): Promise<{ message: string }> {
+  return ApiClient.delete<{ message: string }>(`/content/countries/${id}`);
 }
 
 export async function getCountryBySlug(slug: string): Promise<CountryDetail> {

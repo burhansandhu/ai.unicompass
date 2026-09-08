@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict, Field
 class CountryBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     code: str = Field(..., min_length=2, max_length=10)
-    slug: str = Field(..., min_length=2, max_length=100)
     flag_emoji: str = Field(..., max_length=10)
     overview: str
     currency: str = Field(default="USD", max_length=10)
@@ -17,12 +16,13 @@ class CountryBase(BaseModel):
 
 
 class CountryCreate(CountryBase):
-    pass
+    slug: Optional[str] = None  # Auto-generated from name if not provided
 
 
 class CountryUpdate(BaseModel):
     name: Optional[str] = None
     code: Optional[str] = None
+    slug: Optional[str] = None
     flag_emoji: Optional[str] = None
     overview: Optional[str] = None
     currency: Optional[str] = None
@@ -34,6 +34,7 @@ class CountryUpdate(BaseModel):
 
 class CountryRead(CountryBase):
     id: int
+    slug: str
     created_at: datetime
     updated_at: datetime
 

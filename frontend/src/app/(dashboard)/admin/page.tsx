@@ -7,17 +7,24 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RichTextEditor } from "@/features/content/components/RichTextEditor";
-import { Post } from "@/features/content/types";
-import { getAdminPosts, deletePost } from "@/features/content/api";
+import { CountryEditorModal } from "@/features/content/components/CountryEditorModal";
+import { Post, Country } from "@/features/content/types";
+import { getAdminPosts, deletePost, getAdminCountries, deleteCountry } from "@/features/content/api";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<"overview" | "articles" | "students" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "articles" | "destinations" | "students" | "settings">("overview");
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
+
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [isLoadingCountries, setIsLoadingCountries] = useState(false);
+  const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
+  const [editingCountry, setEditingCountry] = useState<Country | null>(null);
+
   const [notification, setNotification] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,8 +38,46 @@ export default function AdminDashboardPage() {
         .catch(() => {
           setIsLoadingPosts(false);
         });
+
+      setIsLoadingCountries(true);
+      getAdminCountries()
+        .then((data) => {
+          setCountries(data);
+          setIsLoadingCountries(false);
+        })
+        .catch(() => {
+          setIsLoadingCountries(false);
+        });
     }
   }, [user]);
+
+  const handleDeleteCountry = async (id: number, name: string) => {
+    if (!confirm(`Are you sure you want to delete ${name}? Any linked articles will have their country unassigned.`)) return;
+    try {
+      await deleteCountry(id);
+      setCountries((prev) => prev.filter((c) => c.id !== id));
+      setNotification(`Destination '${name}' deleted successfully.`);
+      setTimeout(() => setNotification(null), 3000);
+    } catch {
+      alert("Failed to delete destination.");
+    }
+  };
+
+  const handleCountrySaved = (savedCountry: Country) => {
+    setCountries((prev) => {
+      const idx = prev.findIndex((c) => c.id === savedCountry.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = savedCountry;
+        return next;
+      }
+      return [...prev, savedCountry];
+    });
+    setIsCountryModalOpen(false);
+    setEditingCountry(null);
+    setNotification(editingCountry ? `Destination '${savedCountry.name}' updated!` : `Destination '${savedCountry.name}' created!`);
+    setTimeout(() => setNotification(null), 3500);
+  };
 
   const handleDeletePost = async (id: number) => {
     if (!confirm("Are you sure you want to delete this article? This action cannot be undone.")) return;
@@ -146,11 +191,11 @@ export default function AdminDashboardPage() {
       iconBg: "bg-emerald-50 text-emerald-600",
     },
     {
-      title: "Active Consultation Leads",
-      count: "87",
-      change: "12 pending contact",
-      icon: "🎓",
-      iconBg: "bg-amber-50 text-amber-600",
+      title: "Study Destinations (Live)",
+      count: countries.length > 0 ? countries.length.toString() : "6",
+      change: "Active in DB",
+      icon: "🌍",
+      iconBg: "bg-indigo-50 text-indigo-600",
     },
     {
       title: "Grounding Official Domains",
@@ -263,6 +308,21 @@ export default function AdminDashboardPage() {
               <span className="flex-1">Manage Articles (CMS)</span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">
                 Blog
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("destinations")}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-colors ${
+                activeTab === "destinations"
+                  ? "bg-[#3157E8] text-white font-bold"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <span>🌍</span>
+              <span className="flex-1">Destinations (CMS)</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-semibold">
+                {countries.length}
               </span>
             </button>
 
@@ -494,6 +554,23 @@ export default function AdminDashboardPage() {
                     </button>
 
                     <button
+                      onClick={() => {
+                        setEditingCountry(null);
+                        setIsCountryModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between p-3 rounded-xl bg-[#F7F8FC] hover:bg-[#EEF2FF] text-[#152033] hover:text-[#3157E8] transition-colors border border-[#E7EAF0] text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">🌍</span>
+                        <div>
+                          <div className="text-xs font-bold">Add Study Destination</div>
+                          <div className="text-[11px] text-[#667085]">Add new country guides & costs</div>
+                        </div>
+                      </div>
+                      <span>→</span>
+                    </button>
+
+                    <button
                       onClick={() => setActiveTab("students")}
                       className="w-full flex items-center justify-between p-3 rounded-xl bg-[#F7F8FC] hover:bg-[#EEF2FF] text-[#152033] hover:text-[#3157E8] transition-colors border border-[#E7EAF0] text-left"
                     >
@@ -665,6 +742,154 @@ export default function AdminDashboardPage() {
               onCancel={() => {
                 setIsEditorOpen(false);
                 setEditingPost(null);
+              }}
+            />
+          )}
+
+          {/* Destinations CMS Tab */}
+          {activeTab === "destinations" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-[#152033] tracking-tight flex items-center gap-2.5">
+                    <span>🌍</span> Study Destinations Management
+                  </h1>
+                  <p className="text-sm text-[#667085] mt-1">
+                    Add and customize global study destination countries, PKR living costs, currency exchange, and visa guides.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    setEditingCountry(null);
+                    setIsCountryModalOpen(true);
+                  }}
+                  className="rounded-xl bg-[#3157E8] hover:bg-[#2544BA] text-white"
+                >
+                  + Add New Destination
+                </Button>
+              </div>
+
+              <Card className="border border-[#E7EAF0] overflow-hidden">
+                <div className="overflow-x-auto">
+                  {isLoadingCountries ? (
+                    <div className="py-12 flex flex-col items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3157E8]"></div>
+                      <span className="text-xs text-[#667085]">Loading destinations from database...</span>
+                    </div>
+                  ) : countries.length > 0 ? (
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-[#F7F8FC] border-b border-[#E7EAF0] text-xs font-bold text-[#667085] uppercase tracking-wider">
+                        <tr>
+                          <th className="px-5 py-3">Destination</th>
+                          <th className="px-5 py-3">Code / Slug</th>
+                          <th className="px-5 py-3">Currency</th>
+                          <th className="px-5 py-3">Avg. Annual Cost (PKR)</th>
+                          <th className="px-5 py-3">Badge</th>
+                          <th className="px-5 py-3">Status</th>
+                          <th className="px-5 py-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#E7EAF0]">
+                        {countries.map((c) => (
+                          <tr key={c.id} className="hover:bg-[#F7F8FC]/50 transition-colors">
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{c.flag_emoji}</span>
+                                <div>
+                                  <Link
+                                    href={`/destinations/${c.slug}`}
+                                    target="_blank"
+                                    className="font-bold text-[#152033] hover:text-[#3157E8] transition-colors flex items-center gap-1"
+                                  >
+                                    <span>{c.name}</span>
+                                    <span className="text-xs text-[#667085]">↗</span>
+                                  </Link>
+                                  <p className="text-xs text-[#667085] line-clamp-1 max-w-xs">{c.overview}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-5 py-4 text-xs font-mono text-[#667085]">
+                              <span className="px-2 py-0.5 rounded-md bg-gray-100 font-bold text-[#152033] mr-1.5">{c.code}</span>
+                              /{c.slug}
+                            </td>
+                            <td className="px-5 py-4 text-xs font-bold text-[#152033]">
+                              {c.currency}
+                            </td>
+                            <td className="px-5 py-4 text-xs text-[#152033] font-medium">
+                              {c.avg_cost_pkr || "—"}
+                            </td>
+                            <td className="px-5 py-4 text-xs">
+                              {c.popular_tag ? (
+                                <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold text-[11px] border border-blue-200">
+                                  {c.popular_tag}
+                                </span>
+                              ) : (
+                                <span className="text-[#667085]">—</span>
+                              )}
+                            </td>
+                            <td className="px-5 py-4">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                                  c.is_active
+                                    ? "bg-[#EAF8F1] text-[#16A36A] border-[#C6F0D8]"
+                                    : "bg-gray-100 text-gray-600 border-gray-200"
+                                }`}
+                              >
+                                ● {c.is_active ? "Active" : "Hidden"}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                              <div className="flex items-center justify-end gap-3">
+                                <button
+                                  onClick={() => {
+                                    setEditingCountry(c);
+                                    setIsCountryModalOpen(true);
+                                  }}
+                                  className="text-xs font-semibold text-[#3157E8] hover:underline"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteCountry(c.id, c.name)}
+                                  className="text-xs font-semibold text-red-600 hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="text-3xl mb-2">🌍</div>
+                      <p className="text-sm text-[#667085]">No study destinations created yet.</p>
+                      <Button
+                        onClick={() => {
+                          setEditingCountry(null);
+                          setIsCountryModalOpen(true);
+                        }}
+                        size="sm"
+                        className="mt-3 rounded-xl bg-[#3157E8] text-white"
+                      >
+                        + Add First Destination
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* Modal CountryEditorModal */}
+          {isCountryModalOpen && (
+            <CountryEditorModal
+              countryToEdit={editingCountry}
+              onSuccess={handleCountrySaved}
+              onCancel={() => {
+                setIsCountryModalOpen(false);
+                setEditingCountry(null);
               }}
             />
           )}

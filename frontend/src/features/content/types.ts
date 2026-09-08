@@ -66,3 +66,30 @@ export interface PostUpdatePayload {
   read_time?: string;
   is_published?: boolean;
 }
+
+export interface CountryCreatePayload {
+  name: string;
+  code: string;
+  slug?: string;
+  flag_emoji: string;
+  overview: string;
+  currency?: string;
+  avg_cost_pkr?: string;
+  hero_image_url?: string;
+  popular_tag?: string;
+  is_active?: boolean;
+}
+
+export interface CountryUpdatePayload {
+  name?: string;
+  code?: string;
+  slug?: string;
+  flag_emoji?: string;
+  overview?: string;
+  currency?: string;
+  avg_cost_pkr?: string;
+  hero_image_url?: string;
+  popular_tag?: string;
+  is_active?: boolean;
+}
+

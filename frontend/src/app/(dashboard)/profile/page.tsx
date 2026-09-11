@@ -159,25 +159,42 @@ export default function ProfilePage() {
               { id: "documents", label: "Documents & Attestation", icon: "📑" },
               { id: "advisor", label: "AI Advisor", icon: "🤖" },
               { id: "settings", label: "Settings", icon: "⚙️" },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-colors ${
-                  activeTab === item.id
-                    ? "bg-[#EEF2FF] text-[#3157E8] font-bold"
-                    : "text-[#667085] hover:bg-[#F7F8FC] hover:text-[#152033]"
-                }`}
-              >
-                <span className="text-base">{item.icon}</span>
-                <span className="truncate flex-1">{item.label}</span>
-                {item.id === "profile" && profile && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#3157E8]/10 text-[#3157E8]">
-                    {profile.completeness_percentage}%
-                  </span>
-                )}
-              </button>
-            ))}
+            ].map((item) => {
+              if (item.id === "documents") {
+                return (
+                  <Link
+                    key={item.id}
+                    href="/attestation"
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-colors text-[#667085] hover:bg-[#F7F8FC] hover:text-[#3157E8]"
+                  >
+                    <span className="text-base">{item.icon}</span>
+                    <span className="truncate flex-1">{item.label}</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Tracker
+                    </span>
+                  </Link>
+                );
+              }
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-colors ${
+                    activeTab === item.id
+                      ? "bg-[#EEF2FF] text-[#3157E8] font-bold"
+                      : "text-[#667085] hover:bg-[#F7F8FC] hover:text-[#152033]"
+                  }`}
+                >
+                  <span className="text-base">{item.icon}</span>
+                  <span className="truncate flex-1">{item.label}</span>
+                  {item.id === "profile" && profile && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#3157E8]/10 text-[#3157E8]">
+                      {profile.completeness_percentage}%
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
         </div>
 
@@ -443,6 +460,14 @@ export default function ProfilePage() {
                           </span>
                         </div>
                       ))}
+                    </div>
+
+                    <div className="pt-2 flex justify-end">
+                      <Link href="/attestation">
+                        <Button variant="outline" size="sm" className="text-xs font-semibold text-[#3157E8] border-[#3157E8]/30 hover:bg-[#EEF2FF]">
+                          Open Attestation Tracker (IBCC/HEC/MOFA) →
+                        </Button>
+                      </Link>
                     </div>
                   </Card>
                 </div>

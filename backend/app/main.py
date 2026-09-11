@@ -8,9 +8,11 @@ from app.core.database import init_db, AsyncSessionLocal
 from app.core.constants import UserRole
 from app.features.users.models import User
 from app.features.content.models import Country, Post
+from app.features.profiles.models import StudentProfile
 from app.features.content.service import seed_content_if_empty
 from app.features.auth.router import router as auth_router
 from app.features.content.router import router as content_router
+from app.features.profiles.router import router as profiles_router
 from sqlalchemy import select
 
 
@@ -88,6 +90,8 @@ app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(auth_router)
 app.include_router(content_router, prefix=settings.API_V1_STR)
 app.include_router(content_router)
+app.include_router(profiles_router, prefix=settings.API_V1_STR)
+app.include_router(profiles_router)
 
 
 @app.get("/", tags=["Health"])

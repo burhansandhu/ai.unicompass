@@ -25,7 +25,23 @@ export interface ProgramDeadlineItem {
   badge_color: string;
 }
 
+export interface SelectedProgramInfo {
+  program_id: number;
+  program_name: string;
+  university_name: string;
+  university_logo_url?: string | null;
+  country_name: string;
+  country_flag_emoji: string;
+  deadline_date: string;
+  days_left: number;
+  accepts_moi: boolean;
+  min_ielts_score?: number | null;
+  annual_tuition_formatted?: string | null;
+}
+
 export interface TimelineSummary {
+  has_selected_university: boolean;
+  selected_program?: SelectedProgramInfo | null;
   target_intake_season: string;
   target_intake_year: number;
   intake_label: string;

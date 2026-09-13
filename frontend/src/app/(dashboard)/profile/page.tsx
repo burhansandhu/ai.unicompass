@@ -15,6 +15,9 @@ import { TimelineSummary, MilestoneUpdatePayload } from "@/features/timeline/typ
 import { getTimelineSummary, updateMilestone, downloadCalendarIcs } from "@/features/timeline/api";
 import { ReverseTimelineMilestoneCard } from "@/features/timeline/components/ReverseTimelineMilestoneCard";
 import { TimelineCountdownHeader } from "@/features/timeline/components/TimelineCountdownHeader";
+import { TimelineUniversitySelector } from "@/features/timeline/components/TimelineUniversitySelector";
+import { SelectUniversityTrackerModal } from "@/features/timeline/components/SelectUniversityTrackerModal";
+import { calculateRealtimeDaysLeft } from "@/features/timeline/utils";
 
 export default function ProfilePage() {
   const { user, isLoading, logout } = useAuth();
@@ -26,13 +29,19 @@ export default function ProfilePage() {
   const [isLoadingTimeline, setIsLoadingTimeline] = useState<boolean>(true);
   const [timelineError, setTimelineError] = useState<string | null>(null);
   const [isExportingCalendar, setIsExportingCalendar] = useState<boolean>(false);
+  const [isPickerModalOpen, setIsPickerModalOpen] = useState<boolean>(false);
+  const [trackedProgramId, setTrackedProgramId] = useState<number | null>(null);
 
-  const fetchTimeline = () => {
+  const fetchTimeline = (programId?: number) => {
     setIsLoadingTimeline(true);
     setTimelineError(null);
-    getTimelineSummary()
+    const pid = programId ?? trackedProgramId ?? undefined;
+    getTimelineSummary(pid)
       .then((data) => {
         setTimelineSummary(data);
+        if (data.selected_program?.program_id) {
+          setTrackedProgramId(data.selected_program.program_id);
+        }
         setIsLoadingTimeline(false);
       })
       .catch((err) => {
@@ -40,6 +49,12 @@ export default function ProfilePage() {
         setTimelineError("Unable to calculate reverse timeline.");
         setIsLoadingTimeline(false);
       });
+  };
+
+  const handleSelectTrackedProgram = async (programId: number) => {
+    setTrackedProgramId(programId);
+    fetchTimeline(programId);
+    getMyShortlist().then(setShortlistedItems).catch(() => {});
   };
 
   useEffect(() => {
@@ -171,32 +186,7 @@ export default function ProfilePage() {
     },
   ];
 
-  const deadlines = [
-    {
-      uni: "TU Munich",
-      program: "MSc AI",
-      country: "Germany",
-      date: "31 Jan 2027",
-      days: "144 days",
-      badge: "bg-[#EAF8F1] text-[#16A36A] border-[#C6F0D8]",
-    },
-    {
-      uni: "University of Toronto",
-      program: "MSc CS",
-      country: "Canada",
-      date: "15 Jan 2027",
-      days: "128 days",
-      badge: "bg-[#EAF8F1] text-[#16A36A] border-[#C6F0D8]",
-    },
-    {
-      uni: "Oxford University",
-      program: "MSc Data Science",
-      country: "UK",
-      date: "28 Feb 2027",
-      days: "164 days",
-      badge: "bg-[#FFF4DC] text-[#F59E0B] border-[#FDE68A]",
-    },
-  ];
+
 
   const checklistItems = [
     { step: "Take IELTS / Language Test", status: "Completed", color: "bg-[#EAF8F1] text-[#16A36A] border-[#C6F0D8]" },
@@ -422,6 +412,11 @@ export default function ProfilePage() {
             <div className="space-y-6">
               {timelineSummary ? (
                 <>
+                  <TimelineUniversitySelector
+                    summary={timelineSummary}
+                    onSelectProgram={handleSelectTrackedProgram}
+                  />
+
                   <TimelineCountdownHeader summary={timelineSummary} />
 
                   <div className="space-y-4">
@@ -456,37 +451,70 @@ export default function ProfilePage() {
                             Shortlisted University Application Deadlines
                           </h3>
                           <p className="text-xs text-[#667085]">
-                            Specific institutional submission cutoffs for your shortlisted programs
+                            Specific institutional submission cutoffs with real-time countdown
                           </p>
                         </div>
-                        <Link href="/universities">
-                          <Button variant="outline" size="sm" className="text-xs font-semibold rounded-xl">
-                            + Shortlist More Programs
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onClick={() => setIsPickerModalOpen(true)}
+                            size="sm"
+                            className="bg-[#3157E8] hover:bg-[#2546c7] text-white text-xs font-semibold rounded-xl"
+                          >
+                            + Track Another University
                           </Button>
-                        </Link>
+                          <Link href="/universities">
+                            <Button variant="outline" size="sm" className="text-xs font-semibold rounded-xl">
+                              Browse All
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                        {timelineSummary.program_deadlines.map((p) => (
-                          <div
-                            key={p.program_id}
-                            className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors flex items-center justify-between gap-3"
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-2xl">{p.country_flag_emoji}</span>
-                              <div>
-                                <h4 className="font-bold text-[#152033] line-clamp-1">{p.program_name}</h4>
-                                <p className="text-[#667085] text-[11px]">{p.university_name} • {p.country_name}</p>
+                        {timelineSummary.program_deadlines.map((p) => {
+                          const realtime = calculateRealtimeDaysLeft(p.deadline_date);
+                          const isCurrentlyTracked = p.program_id === timelineSummary.selected_program?.program_id;
+                          return (
+                            <div
+                              key={p.program_id}
+                              className={`p-4 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                                isCurrentlyTracked
+                                  ? "border-[#3157E8] bg-[#F8F9FF] shadow-xs"
+                                  : "border-slate-200 hover:border-slate-300"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{p.country_flag_emoji}</span>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-bold text-[#152033] line-clamp-1">{p.program_name}</h4>
+                                    {isCurrentlyTracked && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#3157E8] text-white">
+                                        Tracked
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[#667085] text-[11px]">{p.university_name} • {p.country_name}</p>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="font-bold text-[#152033]">{p.deadline_date}</div>
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${realtime.badgeClass}`}>
+                                  {realtime.daysLeftText}
+                                </span>
+                                {!isCurrentlyTracked && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSelectTrackedProgram(p.program_id)}
+                                    className="block mt-1 text-[10px] font-semibold text-[#3157E8] hover:underline"
+                                  >
+                                    Track Milestones →
+                                  </button>
+                                )}
                               </div>
                             </div>
-                            <div className="text-right shrink-0">
-                              <div className="font-bold text-[#152033]">{p.deadline_date}</div>
-                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${p.badge_color}`}>
-                                {p.status}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -509,7 +537,7 @@ export default function ProfilePage() {
                   </p>
                   <div className="flex items-center justify-center gap-3">
                     <Button
-                      onClick={fetchTimeline}
+                      onClick={() => fetchTimeline()}
                       size="sm"
                       className="bg-[#3157E8] hover:bg-[#2546c7] text-white rounded-xl text-xs font-semibold px-4"
                     >
@@ -635,50 +663,77 @@ export default function ProfilePage() {
                       </button>
                     </div>
 
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead>
-                          <tr className="text-[#667085] uppercase border-b border-[#E7EAF0]">
-                            <th className="pb-2 font-semibold">University</th>
-                            <th className="pb-2 font-semibold">Country</th>
-                            <th className="pb-2 font-semibold">Deadline</th>
-                            <th className="pb-2 font-semibold">Days Left</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#E7EAF0]">
-                          {(timelineSummary && timelineSummary.program_deadlines.length > 0
-                            ? timelineSummary.program_deadlines.slice(0, 5).map((p) => ({
-                                uni: p.university_name,
-                                program: p.program_name,
-                                country: `${p.country_flag_emoji} ${p.country_name}`,
-                                date: p.deadline_date,
-                                days: `${p.days_left} days`,
-                                badge: p.badge_color,
-                              }))
-                            : deadlines
-                          ).map((d, i) => (
-                            <tr key={i} className="hover:bg-[#F7F8FC] transition-colors">
-                              <td className="py-3 font-bold text-[#152033]">
-                                <div>{d.uni}</div>
-                                <div className="text-[11px] font-normal text-[#667085]">{d.program}</div>
-                              </td>
-                              <td className="py-3 text-[#667085]">{d.country}</td>
-                              <td className="py-3 text-[#152033] font-medium">{d.date}</td>
-                              <td className="py-3">
-                                <span className={`px-2 py-0.5 rounded-full font-semibold border ${d.badge}`}>
-                                  {d.days}
-                                </span>
-                              </td>
+                    {timelineSummary && timelineSummary.program_deadlines.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="text-[#667085] uppercase border-b border-[#E7EAF0]">
+                              <th className="pb-2 font-semibold">University</th>
+                              <th className="pb-2 font-semibold">Country</th>
+                              <th className="pb-2 font-semibold">Deadline</th>
+                              <th className="pb-2 font-semibold">Days Left</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody className="divide-y divide-[#E7EAF0]">
+                            {timelineSummary.program_deadlines.slice(0, 5).map((p) => {
+                              const realtime = calculateRealtimeDaysLeft(p.deadline_date);
+                              return (
+                                <tr key={p.program_id} className="hover:bg-[#F7F8FC] transition-colors">
+                                  <td className="py-3 font-bold text-[#152033]">
+                                    <div className="line-clamp-1">{p.university_name}</div>
+                                    <div className="text-[11px] font-normal text-[#667085] line-clamp-1">{p.program_name}</div>
+                                  </td>
+                                  <td className="py-3 text-[#667085] whitespace-nowrap">
+                                    <span className="mr-1">{p.country_flag_emoji}</span>
+                                    {p.country_name}
+                                  </td>
+                                  <td className="py-3 text-[#152033] font-medium whitespace-nowrap">{p.deadline_date}</td>
+                                  <td className="py-3 whitespace-nowrap">
+                                    <span className={`px-2 py-0.5 rounded-full font-semibold border text-[11px] ${realtime.badgeClass}`}>
+                                      {realtime.daysLeftText}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xl mx-auto text-[#3157E8]">
+                          🏛️
+                        </div>
+                        <div className="max-w-xs mx-auto">
+                          <h4 className="font-bold text-sm text-[#152033]">
+                            No target universities selected
+                          </h4>
+                          <p className="text-xs text-[#667085] mt-1">
+                            Select a university and program to track real-time application cutoffs and automated milestones.
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => setIsPickerModalOpen(true)}
+                          size="sm"
+                          className="bg-[#3157E8] hover:bg-[#2546c7] text-white rounded-xl text-xs font-semibold px-4 shadow-sm"
+                        >
+                          + Select Target University
+                        </Button>
+                      </div>
+                    )}
 
-                    <div className="pt-2 flex justify-end">
+                    <div className="pt-2 flex items-center justify-between border-t border-[#E7EAF0]">
+                      <Button
+                        onClick={() => setIsPickerModalOpen(true)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs font-semibold text-[#3157E8] hover:bg-blue-50"
+                      >
+                        + Select / Add University
+                      </Button>
                       <Button
                         onClick={handleExportCalendar}
-                        disabled={isExportingCalendar}
+                        disabled={isExportingCalendar || !timelineSummary?.has_selected_university}
                         variant="outline"
                         size="sm"
                         className="text-xs font-semibold"
@@ -791,6 +846,14 @@ export default function ProfilePage() {
           )}
         </main>
       </div>
+
+      {/* University Picker Modal for Tracker */}
+      <SelectUniversityTrackerModal
+        isOpen={isPickerModalOpen}
+        onClose={() => setIsPickerModalOpen(false)}
+        onSelectProgram={handleSelectTrackedProgram}
+        currentSelectedId={trackedProgramId}
+      />
     </div>
   );
 }

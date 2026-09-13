@@ -27,7 +27,7 @@ export const TimelineCountdownHeader: React.FC<TimelineCountdownHeaderProps> = (
     setIsExporting(true);
     setExportDone(false);
     try {
-      await downloadCalendarIcs();
+      await downloadCalendarIcs(summary.selected_program?.program_id);
       setExportDone(true);
       setTimeout(() => setExportDone(false), 3000);
     } catch (err) {

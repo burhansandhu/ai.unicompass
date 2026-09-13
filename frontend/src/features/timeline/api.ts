@@ -1,8 +1,9 @@
 import { ApiClient } from "@/lib/api-client";
 import { TimelineSummary, MilestoneUpdatePayload } from "./types";
 
-export async function getTimelineSummary(): Promise<TimelineSummary> {
-  return ApiClient.get<TimelineSummary>("/timeline/summary");
+export async function getTimelineSummary(programId?: number): Promise<TimelineSummary> {
+  const query = programId ? `?program_id=${programId}` : "";
+  return ApiClient.get<TimelineSummary>(`/timeline/summary${query}`);
 }
 
 export async function updateMilestone(
@@ -12,14 +13,15 @@ export async function updateMilestone(
   return ApiClient.put(`/timeline/milestones/${milestoneKey}`, payload);
 }
 
-export async function downloadCalendarIcs(): Promise<void> {
+export async function downloadCalendarIcs(programId?: number): Promise<void> {
   const token = typeof window !== "undefined" ? localStorage.getItem("unicompass_token") : null;
   let baseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").trim().replace(/\/+$/, "");
   if (!baseUrl.endsWith("/api")) {
     baseUrl = `${baseUrl}/api`;
   }
 
-  const response = await fetch(`${baseUrl}/timeline/export.ics`, {
+  const query = programId ? `?program_id=${programId}` : "";
+  const response = await fetch(`${baseUrl}/timeline/export.ics${query}`, {
     headers: {
       Authorization: token ? `Bearer ${token}` : "",
     },

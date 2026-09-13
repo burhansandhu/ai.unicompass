@@ -32,7 +32,25 @@ class ProgramDeadlineItem(BaseModel):
     badge_color: str
 
 
+class SelectedProgramInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    program_id: int
+    program_name: str
+    university_name: str
+    university_logo_url: Optional[str] = None
+    country_name: str
+    country_flag_emoji: str
+    deadline_date: str
+    days_left: int
+    accepts_moi: bool = False
+    min_ielts_score: Optional[float] = None
+    annual_tuition_formatted: Optional[str] = None
+
+
 class TimelineSummaryRead(BaseModel):
+    has_selected_university: bool = False
+    selected_program: Optional[SelectedProgramInfo] = None
     target_intake_season: str
     target_intake_year: int
     intake_label: str

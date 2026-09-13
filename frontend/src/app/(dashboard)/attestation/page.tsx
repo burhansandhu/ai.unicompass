@@ -21,6 +21,7 @@ import { AttestationSummary, AttestationStepUpdatePayload } from "@/features/att
 import { getMyAttestationSteps, updateAttestationStep } from "@/features/attestation/api";
 import { AttestationStepCard } from "@/features/attestation/components/AttestationStepCard";
 import { AttestationProgressBanner } from "@/features/attestation/components/AttestationProgressBanner";
+import { Sidebar } from "@/components/Sidebar";
 
 export default function AttestationPage() {
   const { user, isLoading: isAuthLoading, logout } = useAuth();
@@ -116,84 +117,8 @@ export default function AttestationPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F8FC] flex">
-      {/* Sidebar Navigation */}
-      <aside className="hidden lg:flex w-64 bg-white border-r border-[#E7EAF0] flex-col justify-between fixed h-screen top-0 left-0 z-30">
-        <div className="flex flex-col">
-          {/* Logo Header */}
-          <div className="h-20 flex items-center px-6 border-b border-[#E7EAF0]">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-xl bg-[#3157E8] flex items-center justify-center text-white font-bold text-lg shadow-sm transition-transform group-hover:scale-105">
-                ✦
-              </div>
-              <span className="font-bold text-2xl tracking-tight text-[#152033]">
-                UniCompass
-              </span>
-            </Link>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="p-5 space-y-1 text-sm font-medium">
-            <Link
-              href="/profile"
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-colors text-[#667085] hover:bg-[#F7F8FC] hover:text-[#152033]"
-            >
-              <span className="text-base">📊</span>
-              <span className="truncate flex-1">Dashboard</span>
-            </Link>
-            <Link
-              href="/profile"
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-colors text-[#667085] hover:bg-[#F7F8FC] hover:text-[#152033]"
-            >
-              <span className="text-base">👤</span>
-              <span className="truncate flex-1">My Profile</span>
-            </Link>
-            <Link
-              href="/destinations"
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-colors text-[#667085] hover:bg-[#F7F8FC] hover:text-[#152033]"
-            >
-              <span className="text-base">🌍</span>
-              <span className="truncate flex-1">Destinations</span>
-            </Link>
-            <Link
-              href="/blog"
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-colors text-[#667085] hover:bg-[#F7F8FC] hover:text-[#152033]"
-            >
-              <span className="text-base">📚</span>
-              <span className="truncate flex-1">Country Guides</span>
-            </Link>
-            <div className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-colors bg-[#EEF2FF] text-[#3157E8] font-bold">
-              <span className="text-base">📑</span>
-              <span className="truncate flex-1">Attestation Tracker</span>
-              {summary && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#3157E8]/10 text-[#3157E8]">
-                  {summary.completion_percentage}%
-                </span>
-              )}
-            </div>
-          </nav>
-        </div>
-
-        {/* User Card */}
-        <div className="p-5 border-t border-[#E7EAF0] space-y-3">
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-9 h-9 rounded-full bg-[#3157E8] text-white font-bold flex items-center justify-center text-sm">
-              {user.full_name?.charAt(0) || "U"}
-            </div>
-            <div className="overflow-hidden">
-              <div className="text-sm font-bold text-[#152033] truncate">{user.full_name}</div>
-              <div className="text-xs text-[#667085] capitalize truncate">{user.role} Portal</div>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={logout}
-            className="w-full justify-center text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-100"
-          >
-            Sign Out
-          </Button>
-        </div>
-      </aside>
+      {/* Unified Student Dashboard Sidebar */}
+      <Sidebar activeTab="documents" />
 
       {/* Main Content Area */}
       <main className="flex-1 lg:ml-64 flex flex-col min-h-screen">

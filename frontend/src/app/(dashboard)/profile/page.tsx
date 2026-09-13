@@ -11,6 +11,10 @@ import { StudentProfileForm } from "@/features/profile/components/StudentProfile
 import { ShortlistedProgramItem } from "@/features/discovery/types";
 import { getMyShortlist, toggleShortlist } from "@/features/discovery/api";
 import { ProgramCard } from "@/features/discovery/components/ProgramCard";
+import { TimelineSummary, MilestoneUpdatePayload } from "@/features/timeline/types";
+import { getTimelineSummary, updateMilestone, downloadCalendarIcs } from "@/features/timeline/api";
+import { ReverseTimelineMilestoneCard } from "@/features/timeline/components/ReverseTimelineMilestoneCard";
+import { TimelineCountdownHeader } from "@/features/timeline/components/TimelineCountdownHeader";
 
 export default function ProfilePage() {
   const { user, isLoading, logout } = useAuth();
@@ -18,6 +22,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [shortlistedItems, setShortlistedItems] = useState<ShortlistedProgramItem[]>([]);
+  const [timelineSummary, setTimelineSummary] = useState<TimelineSummary | null>(null);
+  const [isExportingCalendar, setIsExportingCalendar] = useState<boolean>(false);
 
   useEffect(() => {
     if (user) {
@@ -38,6 +44,14 @@ export default function ProfilePage() {
         .catch((err) => {
           console.error("Failed to load shortlist", err);
         });
+
+      getTimelineSummary()
+        .then((data) => {
+          setTimelineSummary(data);
+        })
+        .catch((err) => {
+          console.error("Failed to load timeline", err);
+        });
     }
   }, [user]);
 
@@ -50,6 +64,28 @@ export default function ProfilePage() {
     } catch (err) {
       console.error("Failed to toggle shortlist", err);
       return false;
+    }
+  };
+
+  const handleUpdateMilestone = async (milestoneKey: string, payload: MilestoneUpdatePayload) => {
+    try {
+      await updateMilestone(milestoneKey, payload);
+      const updated = await getTimelineSummary();
+      setTimelineSummary(updated);
+    } catch (err) {
+      console.error("Failed to update milestone", err);
+      throw err;
+    }
+  };
+
+  const handleExportCalendar = async () => {
+    setIsExportingCalendar(true);
+    try {
+      await downloadCalendarIcs();
+    } catch (err) {
+      console.error("Failed to export calendar", err);
+    } finally {
+      setIsExportingCalendar(false);
     }
   };
 
@@ -227,6 +263,11 @@ export default function ProfilePage() {
                       {shortlistedItems.length}
                     </span>
                   )}
+                  {item.id === "deadlines" && timelineSummary && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                      {timelineSummary.days_until_intake}d left
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -366,6 +407,86 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+          ) : activeTab === "deadlines" ? (
+            <div className="space-y-6">
+              {timelineSummary ? (
+                <>
+                  <TimelineCountdownHeader summary={timelineSummary} />
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-base font-bold text-[#152033] flex items-center gap-2">
+                        <span>⏰</span> Automated Reverse Milestones ({timelineSummary.completed_milestones} of {timelineSummary.total_milestones} Done)
+                      </h2>
+                      <span className="text-xs text-[#667085]">
+                        Synchronized with your {timelineSummary.intake_label} intake target
+                      </span>
+                    </div>
+
+                    <div className="space-y-4">
+                      {timelineSummary.milestones.map((m, idx) => (
+                        <ReverseTimelineMilestoneCard
+                          key={m.milestone_key}
+                          milestone={m}
+                          index={idx}
+                          total={timelineSummary.total_milestones}
+                          onUpdate={handleUpdateMilestone}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Shortlisted Program Deadlines */}
+                  {timelineSummary.program_deadlines.length > 0 && (
+                    <div className="mt-8 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <div>
+                          <h3 className="font-bold text-base text-[#152033]">
+                            Shortlisted University Application Deadlines
+                          </h3>
+                          <p className="text-xs text-[#667085]">
+                            Specific institutional submission cutoffs for your shortlisted programs
+                          </p>
+                        </div>
+                        <Link href="/universities">
+                          <Button variant="outline" size="sm" className="text-xs font-semibold rounded-xl">
+                            + Shortlist More Programs
+                          </Button>
+                        </Link>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        {timelineSummary.program_deadlines.map((p) => (
+                          <div
+                            key={p.program_id}
+                            className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors flex items-center justify-between gap-3"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl">{p.country_flag_emoji}</span>
+                              <div>
+                                <h4 className="font-bold text-[#152033] line-clamp-1">{p.program_name}</h4>
+                                <p className="text-[#667085] text-[11px]">{p.university_name} • {p.country_name}</p>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="font-bold text-[#152033]">{p.deadline_date}</div>
+                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${p.badge_color}`}>
+                                {p.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="py-20 text-center bg-white rounded-2xl border border-[#E7EAF0]">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3157E8] mx-auto mb-3"></div>
+                  <span className="text-xs text-[#667085]">Calculating your reverse intake timeline...</span>
+                </div>
+              )}
+            </div>
           ) : (
             <>
               {/* Greeting Banner */}
@@ -465,9 +586,13 @@ export default function ProfilePage() {
                         </h3>
                         <p className="text-xs text-[#667085]">Verified application cutoffs for your shortlisted programs</p>
                       </div>
-                      <span className="text-xs font-semibold text-[#3157E8] cursor-pointer hover:underline">
-                        Manage
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("deadlines")}
+                        className="text-xs font-semibold text-[#3157E8] hover:underline"
+                      >
+                        Manage Timeline →
+                      </button>
                     </div>
 
                     <div className="overflow-x-auto">
@@ -481,7 +606,17 @@ export default function ProfilePage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#E7EAF0]">
-                          {deadlines.map((d, i) => (
+                          {(timelineSummary && timelineSummary.program_deadlines.length > 0
+                            ? timelineSummary.program_deadlines.slice(0, 5).map((p) => ({
+                                uni: p.university_name,
+                                program: p.program_name,
+                                country: `${p.country_flag_emoji} ${p.country_name}`,
+                                date: p.deadline_date,
+                                days: `${p.days_left} days`,
+                                badge: p.badge_color,
+                              }))
+                            : deadlines
+                          ).map((d, i) => (
                             <tr key={i} className="hover:bg-[#F7F8FC] transition-colors">
                               <td className="py-3 font-bold text-[#152033]">
                                 <div>{d.uni}</div>
@@ -501,8 +636,14 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="pt-2 flex justify-end">
-                      <Button variant="outline" size="sm" className="text-xs font-semibold">
-                        Export to Calendar (.ics)
+                      <Button
+                        onClick={handleExportCalendar}
+                        disabled={isExportingCalendar}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs font-semibold"
+                      >
+                        {isExportingCalendar ? "Exporting..." : "Export to Calendar (.ics)"}
                       </Button>
                     </div>
                   </Card>

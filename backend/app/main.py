@@ -11,6 +11,7 @@ from app.features.content.models import Country, Post
 from app.features.profiles.models import StudentProfile
 from app.features.attestation.models import AttestationRecord
 from app.features.discovery.models import University, Program, ShortlistedProgram
+from app.features.timeline.models import StudentMilestone
 from app.features.content.service import seed_content_if_empty
 from app.features.discovery.service import seed_discovery_data_if_empty
 from app.features.auth.router import router as auth_router
@@ -18,6 +19,7 @@ from app.features.content.router import router as content_router
 from app.features.profiles.router import router as profiles_router
 from app.features.attestation.router import router as attestation_router
 from app.features.discovery.router import router as discovery_router
+from app.features.timeline.router import router as timeline_router
 from sqlalchemy import select
 
 
@@ -102,6 +104,8 @@ app.include_router(attestation_router, prefix=settings.API_V1_STR)
 app.include_router(attestation_router)
 app.include_router(discovery_router, prefix=settings.API_V1_STR)
 app.include_router(discovery_router)
+app.include_router(timeline_router, prefix=settings.API_V1_STR)
+app.include_router(timeline_router)
 
 
 @app.get("/", tags=["Health"])

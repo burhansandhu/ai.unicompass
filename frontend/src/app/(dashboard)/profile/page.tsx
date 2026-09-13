@@ -23,7 +23,24 @@ export default function ProfilePage() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [shortlistedItems, setShortlistedItems] = useState<ShortlistedProgramItem[]>([]);
   const [timelineSummary, setTimelineSummary] = useState<TimelineSummary | null>(null);
+  const [isLoadingTimeline, setIsLoadingTimeline] = useState<boolean>(true);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
   const [isExportingCalendar, setIsExportingCalendar] = useState<boolean>(false);
+
+  const fetchTimeline = () => {
+    setIsLoadingTimeline(true);
+    setTimelineError(null);
+    getTimelineSummary()
+      .then((data) => {
+        setTimelineSummary(data);
+        setIsLoadingTimeline(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load timeline", err);
+        setTimelineError("Unable to calculate reverse timeline.");
+        setIsLoadingTimeline(false);
+      });
+  };
 
   useEffect(() => {
     if (user) {
@@ -45,13 +62,7 @@ export default function ProfilePage() {
           console.error("Failed to load shortlist", err);
         });
 
-      getTimelineSummary()
-        .then((data) => {
-          setTimelineSummary(data);
-        })
-        .catch((err) => {
-          console.error("Failed to load timeline", err);
-        });
+      fetchTimeline();
     }
   }, [user]);
 
@@ -480,10 +491,39 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </>
-              ) : (
+              ) : isLoadingTimeline ? (
                 <div className="py-20 text-center bg-white rounded-2xl border border-[#E7EAF0]">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3157E8] mx-auto mb-3"></div>
                   <span className="text-xs text-[#667085]">Calculating your reverse intake timeline...</span>
+                </div>
+              ) : (
+                <div className="py-16 text-center bg-white rounded-2xl border border-[#E7EAF0] p-6">
+                  <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3 text-xl">
+                    ⚠️
+                  </div>
+                  <h3 className="text-base font-bold text-[#152033] mb-1">
+                    {timelineError || "Unable to load timeline"}
+                  </h3>
+                  <p className="text-xs text-[#667085] max-w-md mx-auto mb-4">
+                    Make sure your profile has a target intake specified (e.g., Fall 2026 or Spring 2027) to generate milestone deadlines.
+                  </p>
+                  <div className="flex items-center justify-center gap-3">
+                    <Button
+                      onClick={fetchTimeline}
+                      size="sm"
+                      className="bg-[#3157E8] hover:bg-[#2546c7] text-white rounded-xl text-xs font-semibold px-4"
+                    >
+                      Try Again
+                    </Button>
+                    <Button
+                      onClick={() => setActiveTab("profile")}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs font-semibold px-4"
+                    >
+                      Update Profile Intake
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>

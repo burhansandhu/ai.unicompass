@@ -128,8 +128,27 @@ async def calculate_timeline_summary(session: AsyncSession, user_id: int) -> Tim
     )
     profile = p_res.scalar_one_or_none()
 
-    intake_season = profile.target_intake_season if profile and profile.target_intake_season else "Fall"
-    intake_year = profile.target_intake_year if profile and profile.target_intake_year else 2027
+    intake_season = "Fall"
+    intake_year = 2027
+
+    if profile:
+        raw_intake = getattr(profile, "target_intake", "") or ""
+        if isinstance(raw_intake, str) and raw_intake.strip():
+            raw_lower = raw_intake.lower()
+            if "spring" in raw_lower:
+                intake_season = "Spring"
+            elif "summer" in raw_lower:
+                intake_season = "Summer"
+            else:
+                intake_season = "Fall"
+
+            import re
+            year_match = re.search(r"20\d\d", raw_intake)
+            if year_match:
+                try:
+                    intake_year = int(year_match.group(0))
+                except Exception:
+                    pass
 
     intake_season = intake_season.capitalize()
     intake_label = f"{intake_season} {intake_year}"

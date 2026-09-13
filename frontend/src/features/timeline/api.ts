@@ -13,10 +13,13 @@ export async function updateMilestone(
 }
 
 export async function downloadCalendarIcs(): Promise<void> {
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const token = typeof window !== "undefined" ? localStorage.getItem("unicompass_token") : null;
+  let baseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").trim().replace(/\/+$/, "");
+  if (!baseUrl.endsWith("/api")) {
+    baseUrl = `${baseUrl}/api`;
+  }
 
-  const response = await fetch(`${baseUrl}/api/timeline/export.ics`, {
+  const response = await fetch(`${baseUrl}/timeline/export.ics`, {
     headers: {
       Authorization: token ? `Bearer ${token}` : "",
     },

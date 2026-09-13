@@ -8,12 +8,16 @@ import { Card } from "@/components/ui/card";
 import { StudentProfile } from "@/features/profile/types";
 import { getMyProfile } from "@/features/profile/api";
 import { StudentProfileForm } from "@/features/profile/components/StudentProfileForm";
+import { ShortlistedProgramItem } from "@/features/discovery/types";
+import { getMyShortlist, toggleShortlist } from "@/features/discovery/api";
+import { ProgramCard } from "@/features/discovery/components/ProgramCard";
 
 export default function ProfilePage() {
   const { user, isLoading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [shortlistedItems, setShortlistedItems] = useState<ShortlistedProgramItem[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -26,8 +30,28 @@ export default function ProfilePage() {
         .catch(() => {
           setIsLoadingProfile(false);
         });
+
+      getMyShortlist()
+        .then((data) => {
+          setShortlistedItems(data);
+        })
+        .catch((err) => {
+          console.error("Failed to load shortlist", err);
+        });
     }
   }, [user]);
+
+  const handleToggleShortlist = async (programId: number): Promise<boolean> => {
+    try {
+      const res = await toggleShortlist(programId);
+      const updated = await getMyShortlist();
+      setShortlistedItems(updated);
+      return res.shortlisted;
+    } catch (err) {
+      console.error("Failed to toggle shortlist", err);
+      return false;
+    }
+  };
 
   if (isLoading) {
     return (
@@ -83,6 +107,12 @@ export default function ProfilePage() {
         : "Pending",
       icon: "🗣️",
       iconBg: "bg-purple-50 text-purple-600",
+    },
+    {
+      title: "Shortlisted Programs",
+      count: `${shortlistedItems.length} Programs`,
+      icon: "🏛️",
+      iconBg: "bg-indigo-50 text-indigo-600",
     },
     {
       title: "Target Destinations",
@@ -192,6 +222,11 @@ export default function ProfilePage() {
                       {profile.completeness_percentage}%
                     </span>
                   )}
+                  {item.id === "universities" && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#3157E8]/10 text-[#3157E8]">
+                      {shortlistedItems.length}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -281,6 +316,53 @@ export default function ProfilePage() {
               ) : (
                 <div className="text-center py-16 bg-white rounded-2xl border border-[#E7EAF0] p-6">
                   <p className="text-sm text-[#667085]">Could not load profile. Please refresh the page.</p>
+                </div>
+              )}
+            </div>
+          ) : activeTab === "universities" ? (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E7EAF0]">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-[#152033]">
+                    My Shortlisted Universities & Programs
+                  </h1>
+                  <p className="text-xs sm:text-sm text-[#667085] mt-1">
+                    {shortlistedItems.length} programs saved with converted PKR tuition and embassy living costs.
+                  </p>
+                </div>
+                <Link href="/universities">
+                  <Button className="bg-[#3157E8] hover:bg-[#2546c7] text-white rounded-xl text-xs font-semibold">
+                    Explore & Add More Programs →
+                  </Button>
+                </Link>
+              </div>
+
+              {shortlistedItems.length > 0 ? (
+                <div className="space-y-4">
+                  {shortlistedItems.map((item) => (
+                    <ProgramCard
+                      key={item.id}
+                      program={item.program}
+                      onToggleShortlist={handleToggleShortlist}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="p-16 text-center bg-white rounded-2xl border border-[#E7EAF0] space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-[#EEF2FF] text-[#3157E8] text-2xl flex items-center justify-center mx-auto">
+                    🏛️
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-[#152033]">No universities shortlisted yet</h3>
+                    <p className="text-xs text-[#667085] mt-1 max-w-sm mx-auto">
+                      Use our Discovery Engine to find programs matching your CGPA, PKR budget, and MOI English waiver eligibility.
+                    </p>
+                  </div>
+                  <Link href="/universities">
+                    <Button className="bg-[#3157E8] hover:bg-[#2546c7] text-white rounded-xl text-xs font-semibold px-6">
+                      Launch Discovery Engine
+                    </Button>
+                  </Link>
                 </div>
               )}
             </div>

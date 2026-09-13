@@ -24,7 +24,7 @@ import { AttestationProgressBanner } from "@/features/attestation/components/Att
 import { Sidebar } from "@/components/Sidebar";
 
 export default function AttestationPage() {
-  const { user, isLoading: isAuthLoading, logout } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [summary, setSummary] = useState<AttestationSummary | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);

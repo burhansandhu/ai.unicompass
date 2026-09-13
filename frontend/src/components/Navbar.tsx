@@ -6,7 +6,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -53,15 +53,12 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-3.5">
           {user ? (
             <div className="flex items-center gap-3">
-              <Link href="/profile" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EEF2FF] hover:bg-[#E0E7FF] transition-all border border-[#E0E7FF]">
+              <Link href="/profile" className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EEF2FF] hover:bg-[#E0E7FF] transition-all border border-[#E0E7FF]">
                 <div className="w-7 h-7 rounded-full bg-[#3157E8] text-white flex items-center justify-center text-xs font-bold">
                   {user.full_name?.charAt(0) || "U"}
                 </div>
                 <span className="text-sm font-semibold text-[#152033]">{user.full_name.split(" ")[0]}</span>
               </Link>
-              <Button variant="ghost" size="sm" onClick={() => logout()} className="text-xs font-semibold text-[#667085] hover:text-[#E5484D]">
-                Sign Out
-              </Button>
             </div>
           ) : (
             <div className="flex items-center gap-3">
@@ -120,16 +117,11 @@ export function Navbar() {
           </Link>
           <div className="pt-3 border-t border-[#E7EAF0] flex gap-2">
             {user ? (
-              <>
-                <Link href="/profile" className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full rounded-xl">
-                    Dashboard
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="sm" onClick={() => logout()}>
-                  Sign Out
+              <Link href="/profile" className="flex-1">
+                <Button variant="outline" size="sm" className="w-full rounded-xl">
+                  Dashboard
                 </Button>
-              </>
+              </Link>
             ) : (
               <>
                 <Link href="/login" className="flex-1">

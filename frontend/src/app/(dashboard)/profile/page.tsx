@@ -22,7 +22,7 @@ import { calculateRealtimeDaysLeft } from "@/features/timeline/utils";
 import { Sidebar } from "@/components/Sidebar";
 
 function ProfilePageContent() {
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState(tabParam || "dashboard");
@@ -250,14 +250,6 @@ function ProfilePageContent() {
                 <span className="w-2 h-2 rounded-full bg-[#16A36A] animate-pulse"></span>
                 Live Sync Active
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => logout()}
-                className="text-xs font-semibold rounded-xl h-9 px-3.5"
-              >
-                Sign Out
-              </Button>
             </div>
           </div>
         </header>

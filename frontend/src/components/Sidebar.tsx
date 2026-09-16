@@ -113,67 +113,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
             );
           }
 
-          // AI Advisor always routes to /chat
-          if (item.id === "advisor") {
-            return (
-              <Link
-                key={item.id}
-                href="/chat"
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors text-[13px] ${
-                  isActive
-                    ? "bg-[#EEF2FF] text-[#3157E8] font-bold"
-                    : "text-[#667085] hover:bg-[#F7F8FC] hover:text-[#3157E8]"
-                }`}
-              >
-                <span className="text-base">{item.icon}</span>
-                <span className="truncate flex-1">{item.label}</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#3157E8] border border-blue-200">
-                  AI
-                </span>
-              </Link>
-            );
-          }
-
-          // If an onTabChange handler is provided (e.g. profile page with tabs)
-          if (onTabChange) {
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onTabChange(item.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors text-[13px] ${
-                  isActive
-                    ? "bg-[#EEF2FF] text-[#3157E8] font-bold"
-                    : "text-[#667085] hover:bg-[#F7F8FC] hover:text-[#152033]"
-                }`}
-              >
-                <span className="text-base">{item.icon}</span>
-                <span className="truncate flex-1">{item.label}</span>
-                {item.id === "profile" && profileComp !== undefined && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#3157E8]/10 text-[#3157E8]">
-                    {profileComp}%
-                  </span>
-                )}
-                {item.id === "universities" && shortlistCount !== undefined && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#3157E8]/10 text-[#3157E8]">
-                    {shortlistCount}
-                  </span>
-                )}
-                {item.id === "deadlines" && daysLeft !== undefined && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-                    {daysLeft}d left
-                  </span>
-                )}
-              </button>
-            );
-          }
-
-          // Default: Link to /profile?tab=...
           const targetHref = item.id === "dashboard" ? "/profile" : `/profile?tab=${item.id}`;
+
           return (
             <Link
               key={item.id}
               href={targetHref}
+              onClick={(e) => {
+                if (onTabChange) {
+                  e.preventDefault();
+                  onTabChange(item.id);
+                }
+              }}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors text-[13px] ${
                 isActive
                   ? "bg-[#EEF2FF] text-[#3157E8] font-bold"
@@ -195,6 +146,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {item.id === "deadlines" && daysLeft !== undefined && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
                   {daysLeft}d left
+                </span>
+              )}
+              {item.id === "advisor" && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#3157E8] border border-blue-200">
+                  AI
                 </span>
               )}
             </Link>

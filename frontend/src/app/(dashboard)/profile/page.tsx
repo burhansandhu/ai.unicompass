@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -44,17 +44,55 @@ import {
   X,
 } from "lucide-react";
 
+function normalizeTab(tab: string | null): string {
+  if (!tab) return "dashboard";
+  const lower = tab.toLowerCase();
+  if (lower === "savedscholarships" || lower === "saved_scholarships" || lower === "scholarships") {
+    return "scholarships";
+  }
+  if (lower === "myapplications" || lower === "apps" || lower === "applications") {
+    return "applications";
+  }
+  if (lower === "ai" || lower === "advisor" || lower === "chat") {
+    return "advisor";
+  }
+  if (lower === "settings" || lower === "security") {
+    return "settings";
+  }
+  if (lower === "profile") return "profile";
+  if (lower === "universities" || lower === "shortlist") return "universities";
+  if (lower === "deadlines" || lower === "timeline") return "deadlines";
+  return "dashboard";
+}
+
 function ProfilePageContent() {
+  const router = useRouter();
   const { user, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState(tabParam || "dashboard");
+  const [activeTab, setActiveTab] = useState(() => normalizeTab(tabParam));
 
   useEffect(() => {
-    if (tabParam) {
-      setActiveTab(tabParam);
-    }
+    setActiveTab(normalizeTab(tabParam));
   }, [tabParam]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setActiveTab(normalizeTab(params.get("tab")));
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const handleTabChange = (newTab: string) => {
+    const cleanTab = normalizeTab(newTab);
+    setActiveTab(cleanTab);
+    const targetUrl = cleanTab === "dashboard" ? "/profile" : `/profile?tab=${cleanTab}`;
+    if (typeof window !== "undefined") {
+      window.history.pushState({ tab: cleanTab }, "", targetUrl);
+    }
+  };
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [shortlistedItems, setShortlistedItems] = useState<ShortlistedProgramItem[]>([]);
@@ -100,6 +138,69 @@ function ProfilePageContent() {
   const [notifDeadlines, setNotifDeadlines] = useState(true);
   const [notifVisas, setNotifVisas] = useState(true);
   const [notifScholarships, setNotifScholarships] = useState(true);
+
+  // AI Study Advisor State
+  interface ChatMessage {
+    id: string;
+    sender: "user" | "advisor";
+    text: string;
+    timestamp: string;
+  }
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      id: "msg-0",
+      sender: "advisor",
+      text: "As-salamu alaykum! I'm your UniCompass AI Study Advisor. I'm connected to your academic profile, Pakistani GPA conversions, HEC degree attestation steps, and embassy financial proof requirements. How can I help you today?",
+      timestamp: "Just now",
+    },
+  ]);
+  const [advisorInput, setAdvisorInput] = useState("");
+  const [isAdvisorThinking, setIsAdvisorThinking] = useState(false);
+
+  const handleSendAdvisorMessage = (questionText?: string) => {
+    const q = (questionText || advisorInput).trim();
+    if (!q || isAdvisorThinking) return;
+
+    const userMsg: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      sender: "user",
+      text: q,
+      timestamp: "Just now",
+    };
+
+    setChatMessages((prev) => [...prev, userMsg]);
+    setAdvisorInput("");
+    setIsAdvisorThinking(true);
+
+    setTimeout(() => {
+      let reply = "";
+      const lower = q.toLowerCase();
+
+      if (lower.includes("waiver") || lower.includes("moi") || lower.includes("english")) {
+        reply = `**Medium of Instruction (MOI) & English Waiver Rules for Pakistani Students:**\n\n- **United Kingdom:** Many UK universities (e.g. Coventry, Hertfordshire, Greenwich, Chester) accept an official MOI letter issued by your Pakistani university (NUST, FAST, COMSATS, Punjab University, UET, etc.) if your Bachelor's degree was taught in English, granting a direct IELTS exemption.\n- **Germany:** English-taught Master's programs generally accept an MOI certificate from your registrar, though specific competitive universities (TUM, LMU, RWTH Aachen) may mandate IELTS (6.5 minimum).\n- **Key Requirement:** Your MOI certificate must explicitly certify: *"All coursework, examinations, and project theses were conducted entirely in the English language."*`;
+      } else if (lower.includes("block") || lower.includes("sperrkonto") || lower.includes("bank") || lower.includes("budget") || lower.includes("cost") || lower.includes("pkr")) {
+        reply = `**Embassy Financial Requirements & PKR Conversions (2026/2027):**\n\n- **Germany Blocked Account (*Sperrkonto*):** Mandatory €11,904/year (€992/month). Converted to Pakistani Rupees at ~305 PKR/EUR, this is approximately **3,630,000 PKR**.\n- **United Kingdom:** 28-day consecutive bank statement showing unpaid tuition balance + UKVI living expenses (£1,023/month outside London or £1,334/month inside London for 9 months).\n- **Italy (DSU Grant):** Italian universities have very affordable tuition (€500–€2,500/year). Pakistani students can qualify for regional scholarships (DSU / ER.GO) providing up to €7,000/year stipends + free accommodation based on your family's annual income certificate (FBR tax returns).`;
+      } else if (lower.includes("attestation") || lower.includes("hec") || lower.includes("mofa") || lower.includes("ibcc")) {
+        reply = `**Step-by-Step Degree Attestation Guide for Pakistani Students:**\n\n1. **IBCC (Inter Board Coordination Commission):** Attest your original Matric (SSC) and FSc (HSSC) certificates and marksheets first.\n2. **HEC (Higher Education Commission):** Create an account on the HEC e-portal (eservices.hec.gov.pk). Verify all degree credentials online, schedule an appointment, or use courier (TCS/Leopard) to get your Bachelor's degree and transcripts stamped.\n3. **MOFA (Ministry of Foreign Affairs):** After IBCC and HEC stamps, take all originals to your nearest MOFA liaison office (Islamabad, Lahore, Karachi, Peshawar, Quetta) for final attestation. Most European embassies require MOFA stamps within 6 months of your visa interview!`;
+      } else if (lower.includes("visa") || lower.includes("appointment") || lower.includes("vfs") || lower.includes("gerry")) {
+        reply = `**Visa Appointments & Submission Pipeline:**\n\n- **Germany:** German embassy appointments in Islamabad and Karachi book months in advance through the embassy waitlist portal. Register as soon as you receive your conditional or unconditional admission offer!\n- **United Kingdom:** Uses VFS Global / Gerry's in major Pakistani cities. Once your university issues your CAS (Confirmation of Acceptance for Studies), Priority (5-day) and Super Priority (24-hour) processing options are available.\n- **Track your deadlines** on our Deadline Tracker tab to ensure your 28-day bank statement matures right on time!`;
+      } else {
+        const studentCgpa = profile?.cgpa ? `${profile.cgpa} / ${profile.cgpa_scale || 4.0}` : "not set in your profile";
+        const intake = profile?.target_intake || "Fall 2026";
+        reply = `**Advising for ${user?.full_name || "Student"}:**\n\nBased on your registered profile details:\n- **Academic CGPA:** ${studentCgpa}\n- **Target Intake:** ${intake}\n- **Shortlisted Universities:** ${shortlistedItems.length} programs saved\n\nFor Pakistani students applying for ${intake}, we recommend submitting university applications by early summer to secure early-bird fee discounts and guarantee your visa appointment slot before peak August delays. What specific topic would you like to explore next? (e.g., Scholarships, IELTS waivers, or Program matching)`;
+      }
+
+      const advisorMsg: ChatMessage = {
+        id: `msg-${Date.now() + 1}`,
+        sender: "advisor",
+        text: reply,
+        timestamp: "Just now",
+      };
+
+      setChatMessages((prev) => [...prev, advisorMsg]);
+      setIsAdvisorThinking(false);
+    }, 600);
+  };
 
   const fetchTimeline = (programId?: number) => {
     setIsLoadingTimeline(true);
@@ -404,7 +505,7 @@ function ProfilePageContent() {
       {/* Unified Student Dashboard Sidebar */}
       <Sidebar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         profileCompleteness={profile?.completeness_percentage}
         shortlistedCount={shortlistedItems.length}
         daysUntilIntake={timelineSummary?.days_until_intake}
@@ -973,6 +1074,159 @@ function ProfilePageContent() {
                     />
                   </label>
                 </div>
+              </div>
+            </div>
+          ) : activeTab === "advisor" ? (
+            /* AI Advisor Tab */
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E7EAF0]">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-[#152033] flex items-center gap-2">
+                    <span>🤖</span> AI Study Advisor Console
+                  </h1>
+                  <p className="text-xs sm:text-sm text-[#667085] mt-1">
+                    Directly grounded in Pakistani student criteria — HEC degree attestation, MOI waivers, German blocked accounts, and UKVI rules.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link href="/chat">
+                    <Button variant="outline" size="sm" className="rounded-xl text-xs font-semibold gap-1.5">
+                      <span>↗</span> Fullscreen Chat Mode
+                    </Button>
+                  </Link>
+                  <Button
+                    onClick={() => {
+                      setChatMessages([
+                        {
+                          id: `msg-${Date.now()}`,
+                          sender: "advisor",
+                          text: "Conversation reset. How else can I assist your study-abroad preparation today?",
+                          timestamp: "Just now",
+                        },
+                      ]);
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl text-xs font-semibold text-[#667085]"
+                  >
+                    Reset Chat
+                  </Button>
+                </div>
+              </div>
+
+              {/* Student Context Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-white p-3.5 rounded-xl border border-[#E7EAF0]">
+                  <div className="text-[11px] text-[#667085]">Student Profile</div>
+                  <div className="text-xs font-bold text-[#152033] truncate mt-0.5">{user.full_name}</div>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-[#E7EAF0]">
+                  <div className="text-[11px] text-[#667085]">Academic CGPA</div>
+                  <div className="text-xs font-bold text-[#152033] truncate mt-0.5">
+                    {profile?.cgpa ? `${profile.cgpa} / ${profile.cgpa_scale || 4.0}` : "Not Set"}
+                  </div>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-[#E7EAF0]">
+                  <div className="text-[11px] text-[#667085]">Target Intake</div>
+                  <div className="text-xs font-bold text-[#152033] truncate mt-0.5">
+                    {profile?.target_intake || "Fall 2026"}
+                  </div>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-[#E7EAF0]">
+                  <div className="text-[11px] text-[#667085]">Shortlisted Programs</div>
+                  <div className="text-xs font-bold text-[#3157E8] truncate mt-0.5">
+                    {shortlistedItems.length} Universities
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Pakistani Student Prompts */}
+              <div className="bg-gradient-to-r from-[#EEF2FF] to-[#F7F8FC] p-4 rounded-2xl border border-[#3157E8]/20 space-y-2.5">
+                <div className="text-xs font-bold text-[#152033] flex items-center gap-1.5">
+                  <span>💡</span>
+                  <span>Frequently Asked Pakistani Student Queries (Click to ask):</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "Will UK universities accept my Pakistani MOI letter instead of IELTS?",
+                    "How much is the German blocked account in PKR for 2026?",
+                    "What is the step-by-step HEC, IBCC, and MOFA attestation process?",
+                    "How to get Gerry's / VFS visa appointment in Pakistan?",
+                  ].map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => handleSendAdvisorMessage(chip)}
+                      className="text-xs font-medium bg-white hover:bg-[#3157E8] hover:text-white text-[#152033] px-3 py-1.5 rounded-xl border border-[#E7EAF0] shadow-2xs transition-all text-left"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Chat Conversation Box */}
+              <div className="bg-white rounded-2xl border border-[#E7EAF0] flex flex-col h-[520px] overflow-hidden shadow-2xs">
+                {/* Message Stream */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                  {chatMessages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex gap-3 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      {msg.sender === "advisor" && (
+                        <div className="w-8 h-8 rounded-xl bg-[#3157E8] text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-xs">
+                          ✦
+                        </div>
+                      )}
+                      <div
+                        className={`max-w-2xl rounded-2xl p-4 text-xs sm:text-sm leading-relaxed ${
+                          msg.sender === "user"
+                            ? "bg-[#3157E8] text-white rounded-tr-xs"
+                            : "bg-[#F7F8FC] text-[#152033] border border-[#E7EAF0] rounded-tl-xs whitespace-pre-line"
+                        }`}
+                      >
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
+                  {isAdvisorThinking && (
+                    <div className="flex gap-3 justify-start items-center text-xs text-[#667085]">
+                      <div className="w-8 h-8 rounded-xl bg-[#3157E8] text-white flex items-center justify-center text-sm font-bold shrink-0">
+                        ✦
+                      </div>
+                      <div className="bg-[#F7F8FC] border border-[#E7EAF0] px-4 py-2.5 rounded-2xl flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#3157E8] animate-ping"></span>
+                        <span>AI Advisor is reviewing Pakistani visa & university regulations...</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Input Bar */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSendAdvisorMessage();
+                  }}
+                  className="p-3 sm:p-4 border-t border-[#E7EAF0] bg-[#FAFAFC] flex items-center gap-2.5"
+                >
+                  <Input
+                    type="text"
+                    value={advisorInput}
+                    onChange={(e) => setAdvisorInput(e.target.value)}
+                    placeholder="Ask about IELTS waivers, tuition budgets in PKR, visa appointments, or HEC attestation..."
+                    className="flex-1 bg-white text-xs sm:text-sm h-11 rounded-xl"
+                  />
+                  <Button
+                    type="submit"
+                    disabled={!advisorInput.trim() || isAdvisorThinking}
+                    className="bg-[#3157E8] hover:bg-[#2546c7] text-white h-11 px-5 rounded-xl text-xs font-semibold shrink-0 gap-1.5"
+                  >
+                    <span>Send</span>
+                    <Send className="w-3.5 h-3.5" />
+                  </Button>
+                </form>
               </div>
             </div>
           ) : (

@@ -119,9 +119,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Link
               key={item.id}
               href={targetHref}
-              onClick={(e) => {
+              scroll={false}
+              onClick={() => {
                 if (onTabChange) {
-                  e.preventDefault();
                   onTabChange(item.id);
                 }
               }}

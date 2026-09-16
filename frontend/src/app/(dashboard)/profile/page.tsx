@@ -70,28 +70,12 @@ function ProfilePageContent() {
   const { user, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState(() => normalizeTab(tabParam));
-
-  useEffect(() => {
-    setActiveTab(normalizeTab(tabParam));
-  }, [tabParam]);
-
-  useEffect(() => {
-    const handlePopState = () => {
-      const params = new URLSearchParams(window.location.search);
-      setActiveTab(normalizeTab(params.get("tab")));
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  const activeTab = normalizeTab(tabParam);
 
   const handleTabChange = (newTab: string) => {
     const cleanTab = normalizeTab(newTab);
-    setActiveTab(cleanTab);
     const targetUrl = cleanTab === "dashboard" ? "/profile" : `/profile?tab=${cleanTab}`;
-    if (typeof window !== "undefined") {
-      window.history.pushState({ tab: cleanTab }, "", targetUrl);
-    }
+    router.push(targetUrl, { scroll: false });
   };
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
@@ -750,7 +734,7 @@ function ProfilePageContent() {
                       Try Again
                     </Button>
                     <Button
-                      onClick={() => setActiveTab("profile")}
+                      onClick={() => handleTabChange("profile")}
                       variant="outline"
                       size="sm"
                       className="rounded-xl text-xs font-semibold px-4"
@@ -1244,7 +1228,7 @@ function ProfilePageContent() {
 
                 <div className="flex items-center gap-2">
                   <Button
-                    onClick={() => setActiveTab("profile")}
+                    onClick={() => handleTabChange("profile")}
                     variant="outline"
                     size="sm"
                     className="font-semibold text-xs rounded-xl gap-1.5"
@@ -1256,11 +1240,14 @@ function ProfilePageContent() {
                       Explore Countries
                     </Button>
                   </Link>
-                  <Link href="/chat">
-                    <Button variant="primary" size="sm" className="font-semibold text-xs rounded-xl gap-1.5 shadow-sm">
-                      <span>✦</span> AI Advisor
-                    </Button>
-                  </Link>
+                  <Button
+                    onClick={() => handleTabChange("advisor")}
+                    variant="primary"
+                    size="sm"
+                    className="font-semibold text-xs rounded-xl gap-1.5 shadow-sm"
+                  >
+                    <span>✦</span> AI Advisor
+                  </Button>
                 </div>
               </div>
 
@@ -1283,7 +1270,7 @@ function ProfilePageContent() {
                     </div>
                   </div>
                   <Button
-                    onClick={() => setActiveTab("profile")}
+                    onClick={() => handleTabChange("profile")}
                     size="sm"
                     className="rounded-xl bg-[#3157E8] hover:bg-[#2544BA] text-white px-5 text-xs font-bold whitespace-nowrap shadow-xs"
                   >
@@ -1330,7 +1317,7 @@ function ProfilePageContent() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => setActiveTab("deadlines")}
+                        onClick={() => handleTabChange("deadlines")}
                         className="text-xs font-semibold text-[#3157E8] hover:underline"
                       >
                         Manage Timeline →
@@ -1475,7 +1462,7 @@ function ProfilePageContent() {
                     <p className="text-xs text-[#667085]">Used for real-time RAG AI search and Pakistani visa evaluations</p>
                   </div>
                   <Button
-                    onClick={() => setActiveTab("profile")}
+                    onClick={() => handleTabChange("profile")}
                     variant="outline"
                     size="sm"
                     className="text-xs font-bold rounded-xl"

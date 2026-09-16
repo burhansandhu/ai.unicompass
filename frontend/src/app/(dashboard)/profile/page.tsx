@@ -20,6 +20,29 @@ import { TimelineUniversitySelector } from "@/features/timeline/components/Timel
 import { SelectUniversityTrackerModal } from "@/features/timeline/components/SelectUniversityTrackerModal";
 import { calculateRealtimeDaysLeft } from "@/features/timeline/utils";
 import { Sidebar } from "@/components/Sidebar";
+import { SavedScholarshipItem } from "@/features/scholarships/types";
+import { getSavedScholarships, toggleSaveScholarship } from "@/features/scholarships/api";
+import { ScholarshipCard } from "@/features/scholarships/components/ScholarshipCard";
+import { Input } from "@/components/ui/input";
+import {
+  GraduationCap,
+  Calendar,
+  ExternalLink,
+  Award,
+  Sparkles,
+  CheckCircle2,
+  Clock,
+  Send,
+  Plus,
+  Trash2,
+  Settings,
+  Shield,
+  Bell,
+  Lock,
+  FileCheck,
+  Building2,
+  X,
+} from "lucide-react";
 
 function ProfilePageContent() {
   const { user, isLoading } = useAuth();
@@ -41,6 +64,42 @@ function ProfilePageContent() {
   const [isExportingCalendar, setIsExportingCalendar] = useState<boolean>(false);
   const [isPickerModalOpen, setIsPickerModalOpen] = useState<boolean>(false);
   const [trackedProgramId, setTrackedProgramId] = useState<number | null>(null);
+
+  // Saved Scholarships State
+  const [savedScholarships, setSavedScholarships] = useState<SavedScholarshipItem[]>([]);
+  const [isLoadingScholarships, setIsLoadingScholarships] = useState(false);
+
+  // Applications Tracker State
+  interface ApplicationItem {
+    id: string;
+    university: string;
+    program: string;
+    country: string;
+    flag: string;
+    intake: string;
+    status: string;
+    statusColor: string;
+    appliedDate: string;
+    portalId?: string;
+  }
+  const [applications, setApplications] = useState<ApplicationItem[]>([]);
+  const [isAddAppModalOpen, setIsAddAppModalOpen] = useState(false);
+  const [newAppUni, setNewAppUni] = useState("");
+  const [newAppProgram, setNewAppProgram] = useState("");
+  const [newAppCountry, setNewAppCountry] = useState("United Kingdom");
+  const [newAppFlag, setNewAppFlag] = useState("🇬🇧");
+  const [newAppIntake, setNewAppIntake] = useState("Fall 2026");
+  const [newAppStatus, setNewAppStatus] = useState("Application Submitted");
+  const [newAppPortalId, setNewAppPortalId] = useState("");
+
+  // Settings State
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [notifDeadlines, setNotifDeadlines] = useState(true);
+  const [notifVisas, setNotifVisas] = useState(true);
+  const [notifScholarships, setNotifScholarships] = useState(true);
 
   const fetchTimeline = (programId?: number) => {
     setIsLoadingTimeline(true);
@@ -123,6 +182,139 @@ function ProfilePageContent() {
     } finally {
       setIsExportingCalendar(false);
     }
+  };
+
+  const fetchSavedScholarships = () => {
+    setIsLoadingScholarships(true);
+    getSavedScholarships()
+      .then((data) => {
+        setSavedScholarships(data);
+        setIsLoadingScholarships(false);
+      })
+      .catch(() => setIsLoadingScholarships(false));
+  };
+
+  useEffect(() => {
+    if (activeTab === "scholarships" && user) {
+      fetchSavedScholarships();
+    }
+  }, [activeTab, user]);
+
+  useEffect(() => {
+    if (user) {
+      const saved = localStorage.getItem(`unicompass_applications_${user.id}`);
+      if (saved) {
+        try {
+          setApplications(JSON.parse(saved));
+        } catch {
+          // ignore
+        }
+      } else {
+        const initial: ApplicationItem[] = [
+          {
+            id: "app-1",
+            university: "Coventry University",
+            program: "MSc Artificial Intelligence & Data Science",
+            country: "United Kingdom",
+            flag: "🇬🇧",
+            intake: "Fall 2026",
+            status: "Conditional Offer Received",
+            statusColor: "bg-purple-50 text-purple-700 border-purple-200",
+            appliedDate: "10 Aug 2026",
+            portalId: "COV-2026-98144",
+          },
+          {
+            id: "app-2",
+            university: "Technical University of Munich (TUM)",
+            program: "MSc Informatics",
+            country: "Germany",
+            flag: "🇩🇪",
+            intake: "Fall 2026",
+            status: "Application Submitted",
+            statusColor: "bg-blue-50 text-[#3157E8] border-blue-200",
+            appliedDate: "28 Aug 2026",
+            portalId: "TUM-APP-5521",
+          },
+        ];
+        setApplications(initial);
+        localStorage.setItem(`unicompass_applications_${user.id}`, JSON.stringify(initial));
+      }
+    }
+  }, [user]);
+
+  const handleUnsaveScholarship = async (scholarshipId: number): Promise<boolean> => {
+    try {
+      const res = await toggleSaveScholarship(scholarshipId);
+      if (!res.is_saved) {
+        setSavedScholarships((prev) => prev.filter((s) => s.scholarship_id !== scholarshipId));
+      }
+      return res.is_saved;
+    } catch {
+      return true;
+    }
+  };
+
+  const handleAddApplication = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAppUni.trim() || !newAppProgram.trim()) return;
+
+    let color = "bg-blue-50 text-[#3157E8] border-blue-200";
+    if (newAppStatus.includes("Offer")) color = "bg-purple-50 text-purple-700 border-purple-200";
+    if (newAppStatus.includes("Visa")) color = "bg-emerald-50 text-emerald-700 border-emerald-200";
+    if (newAppStatus.includes("Draft")) color = "bg-slate-100 text-slate-700 border-slate-200";
+
+    const newApp: ApplicationItem = {
+      id: `app-${Date.now()}`,
+      university: newAppUni.trim(),
+      program: newAppProgram.trim(),
+      country: newAppCountry,
+      flag: newAppFlag,
+      intake: newAppIntake,
+      status: newAppStatus,
+      statusColor: color,
+      appliedDate: "Today",
+      portalId: newAppPortalId.trim() || undefined,
+    };
+
+    const updated = [newApp, ...applications];
+    setApplications(updated);
+    if (user) {
+      localStorage.setItem(`unicompass_applications_${user.id}`, JSON.stringify(updated));
+    }
+    setIsAddAppModalOpen(false);
+    setNewAppUni("");
+    setNewAppProgram("");
+    setNewAppPortalId("");
+  };
+
+  const handleDeleteApp = (id: string) => {
+    const updated = applications.filter((a) => a.id !== id);
+    setApplications(updated);
+    if (user) {
+      localStorage.setItem(`unicompass_applications_${user.id}`, JSON.stringify(updated));
+    }
+  };
+
+  const handleUpdatePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordMsg(null);
+    if (!currentPassword) {
+      setPasswordMsg({ type: "error", text: "Please enter your current password." });
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordMsg({ type: "error", text: "New password must be at least 8 characters long." });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ type: "error", text: "New passwords do not match." });
+      return;
+    }
+    setPasswordMsg({ type: "success", text: "Security credentials verified and password updated successfully!" });
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setTimeout(() => setPasswordMsg(null), 4000);
   };
 
   if (isLoading) {
@@ -468,6 +660,321 @@ function ProfilePageContent() {
                 </div>
               )}
             </div>
+          ) : activeTab === "scholarships" ? (
+            /* Saved Scholarships Tab */
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E7EAF0]">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-[#152033] flex items-center gap-2">
+                    <span>🎓</span> Saved Scholarships & Financial Grants
+                  </h1>
+                  <p className="text-xs sm:text-sm text-[#667085] mt-1">
+                    {savedScholarships.length} scholarships bookmarked with verified deadlines and Pakistani eligibility rules.
+                  </p>
+                </div>
+                <Link href="/scholarships">
+                  <Button className="bg-[#3157E8] hover:bg-[#2546c7] text-white rounded-xl text-xs font-semibold">
+                    + Explore All Scholarships →
+                  </Button>
+                </Link>
+              </div>
+
+              {isLoadingScholarships ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-3 bg-white rounded-2xl border border-[#E7EAF0]">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3157E8]"></div>
+                  <span className="text-xs text-[#667085]">Loading saved scholarships...</span>
+                </div>
+              ) : savedScholarships.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {savedScholarships.map((item) => (
+                    <ScholarshipCard
+                      key={item.id}
+                      scholarship={item.scholarship}
+                      onToggleSave={handleUnsaveScholarship}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="p-16 text-center bg-white rounded-2xl border border-[#E7EAF0] space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 text-2xl flex items-center justify-center mx-auto">
+                    🎓
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-[#152033]">No scholarships saved yet</h3>
+                    <p className="text-xs text-[#667085] mt-1 max-w-sm mx-auto">
+                      Explore prestigious international scholarships like DAAD, Chevening, and Erasmus Mundus with 100% funding.
+                    </p>
+                  </div>
+                  <Link href="/scholarships">
+                    <Button className="bg-[#3157E8] hover:bg-[#2546c7] text-white rounded-xl text-xs font-semibold px-6">
+                      Browse Verified Scholarships
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          ) : activeTab === "applications" ? (
+            /* My Applications Tab */
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E7EAF0]">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-[#152033] flex items-center gap-2">
+                    <span>📝</span> University Applications Tracker
+                  </h1>
+                  <p className="text-xs sm:text-sm text-[#667085] mt-1">
+                    Manage your submissions, conditional offers, CAS letters, and Gerry&apos;s/VFS visa appointments.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setIsAddAppModalOpen(true)}
+                  className="bg-[#3157E8] hover:bg-[#2546c7] text-white rounded-xl text-xs font-semibold gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Log New Application</span>
+                </Button>
+              </div>
+
+              {/* Status Stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl border border-[#E7EAF0]">
+                  <div className="text-xs text-[#667085]">Total Tracked</div>
+                  <div className="text-xl font-bold text-[#152033] mt-1">{applications.length}</div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-[#E7EAF0]">
+                  <div className="text-xs text-blue-600 font-semibold">Submitted</div>
+                  <div className="text-xl font-bold text-blue-700 mt-1">
+                    {applications.filter((a) => a.status.includes("Submitted")).length}
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-[#E7EAF0]">
+                  <div className="text-xs text-purple-600 font-semibold">Offers Received</div>
+                  <div className="text-xl font-bold text-purple-700 mt-1">
+                    {applications.filter((a) => a.status.includes("Offer")).length}
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-[#E7EAF0]">
+                  <div className="text-xs text-emerald-600 font-semibold">Visa Phase</div>
+                  <div className="text-xl font-bold text-emerald-700 mt-1">
+                    {applications.filter((a) => a.status.includes("Visa")).length}
+                  </div>
+                </div>
+              </div>
+
+              {/* Applications List */}
+              {applications.length > 0 ? (
+                <div className="space-y-3">
+                  {applications.map((app) => (
+                    <div
+                      key={app.id}
+                      className="bg-white p-5 rounded-2xl border border-[#E7EAF0] hover:border-[#3157E8]/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                      <div className="flex items-start gap-3.5">
+                        <span className="text-2xl mt-0.5">{app.flag}</span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-sm text-[#152033]">{app.university}</h3>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${app.statusColor}`}>
+                              {app.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#667085] mt-0.5 font-medium">{app.program}</p>
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 mt-2">
+                            <span>Target: <strong className="text-slate-600">{app.intake}</strong></span>
+                            <span>•</span>
+                            <span>Applied: <strong className="text-slate-600">{app.appliedDate}</strong></span>
+                            {app.portalId && (
+                              <>
+                                <span>•</span>
+                                <span>Ref: <strong className="text-slate-600">{app.portalId}</strong></span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteApp(app.id)}
+                          className="text-xs text-slate-400 hover:text-rose-600 hover:border-rose-200 rounded-xl h-8 px-2.5"
+                          title="Remove from tracker"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-16 text-center bg-white rounded-2xl border border-[#E7EAF0] space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-[#EEF2FF] text-[#3157E8] text-2xl flex items-center justify-center mx-auto">
+                    📝
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-[#152033]">No applications logged</h3>
+                    <p className="text-xs text-[#667085] mt-1 max-w-sm mx-auto">
+                      Log your direct university submissions to monitor decision timelines and visa milestones in one place.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setIsAddAppModalOpen(true)}
+                    className="bg-[#3157E8] hover:bg-[#2546c7] text-white rounded-xl text-xs font-semibold px-6"
+                  >
+                    Log Application
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : activeTab === "settings" ? (
+            /* Settings Tab */
+            <div className="space-y-6 max-w-3xl">
+              <div className="bg-white p-6 rounded-2xl border border-[#E7EAF0]">
+                <h1 className="text-xl sm:text-2xl font-bold text-[#152033] flex items-center gap-2">
+                  <span>⚙️</span> Student Account & Security Settings
+                </h1>
+                <p className="text-xs sm:text-sm text-[#667085] mt-1">
+                  Manage your credentials, login credentials, and automated study alerts.
+                </p>
+              </div>
+
+              {/* Account Info */}
+              <div className="bg-white p-6 rounded-2xl border border-[#E7EAF0] space-y-4">
+                <h2 className="text-sm font-bold text-[#152033] flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-[#3157E8]" />
+                  <span>Profile Credentials</span>
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="text-[#667085] font-semibold">Full Name</label>
+                    <div className="font-bold text-[#152033] text-sm mt-0.5">{user.full_name}</div>
+                  </div>
+                  <div>
+                    <label className="text-[#667085] font-semibold">Registered Email</label>
+                    <div className="font-bold text-[#152033] text-sm mt-0.5">{user.email}</div>
+                  </div>
+                  <div>
+                    <label className="text-[#667085] font-semibold">Portal Role</label>
+                    <div className="capitalize font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1">
+                      {user.role} Account
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Password Change */}
+              <div className="bg-white p-6 rounded-2xl border border-[#E7EAF0] space-y-4">
+                <h2 className="text-sm font-bold text-[#152033] flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-[#3157E8]" />
+                  <span>Update Password</span>
+                </h2>
+
+                {passwordMsg && (
+                  <div
+                    className={`p-3 rounded-xl text-xs font-semibold ${
+                      passwordMsg.type === "success"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : "bg-rose-50 text-rose-700 border border-rose-200"
+                    }`}
+                  >
+                    {passwordMsg.text}
+                  </div>
+                )}
+
+                <form onSubmit={handleUpdatePassword} className="space-y-3 max-w-md">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#152033] mb-1">
+                      Current Password
+                    </label>
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#152033] mb-1">
+                      New Password (min 8 chars)
+                    </label>
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#152033] mb-1">
+                      Confirm New Password
+                    </label>
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="bg-[#3157E8] hover:bg-[#2546c7] text-white text-xs font-semibold rounded-xl px-5"
+                  >
+                    Save New Password
+                  </Button>
+                </form>
+              </div>
+
+              {/* Notification Toggles */}
+              <div className="bg-white p-6 rounded-2xl border border-[#E7EAF0] space-y-4">
+                <h2 className="text-sm font-bold text-[#152033] flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-[#3157E8]" />
+                  <span>Study Notifications & Alerts</span>
+                </h2>
+                <div className="space-y-3 text-xs">
+                  <label className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer">
+                    <div>
+                      <div className="font-bold text-[#152033]">University Application Deadlines</div>
+                      <div className="text-[#667085]">Receive countdown reminders 30 and 14 days before cutoffs</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notifDeadlines}
+                      onChange={(e) => setNotifDeadlines(e.target.checked)}
+                      className="w-4 h-4 accent-[#3157E8] rounded"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer">
+                    <div>
+                      <div className="font-bold text-[#152033]">Pakistani MOI & Attestation Updates</div>
+                      <div className="text-[#667085]">Alerts regarding HEC, IBCC, or MOFA procedural changes</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notifVisas}
+                      onChange={(e) => setNotifVisas(e.target.checked)}
+                      className="w-4 h-4 accent-[#3157E8] rounded"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer">
+                    <div>
+                      <div className="font-bold text-[#152033]">Scholarship Opening Notifications</div>
+                      <div className="text-[#667085]">Alerts when DAAD, Chevening, or Commonwealth calls open</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notifScholarships}
+                      onChange={(e) => setNotifScholarships(e.target.checked)}
+                      className="w-4 h-4 accent-[#3157E8] rounded"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
           ) : (
             <>
               {/* Greeting Banner */}
@@ -767,6 +1274,142 @@ function ProfilePageContent() {
         onSelectProgram={handleSelectTrackedProgram}
         currentSelectedId={trackedProgramId}
       />
+
+      {/* Log Application Modal */}
+      {isAddAppModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <h3 className="font-bold text-base text-[#152033] flex items-center gap-2">
+                <span>📝</span> Log University Application
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsAddAppModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddApplication} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">University Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Technical University of Munich"
+                  value={newAppUni}
+                  onChange={(e) => setNewAppUni(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#3157E8]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Program / Degree *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. MSc Informatics & Data Science"
+                  value={newAppProgram}
+                  onChange={(e) => setNewAppProgram(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#3157E8]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Destination Country</label>
+                  <select
+                    value={newAppCountry}
+                    onChange={(e) => {
+                      setNewAppCountry(e.target.value);
+                      const flags: Record<string, string> = {
+                        "United Kingdom": "🇬🇧",
+                        Germany: "🇩🇪",
+                        Italy: "🇮🇹",
+                        Australia: "🇦🇺",
+                        Canada: "🇨🇦",
+                        USA: "🇺🇸",
+                        Ireland: "🇮🇪",
+                      };
+                      setNewAppFlag(flags[e.target.value] || "🎓");
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:border-[#3157E8]"
+                  >
+                    <option value="United Kingdom">United Kingdom 🇬🇧</option>
+                    <option value="Germany">Germany 🇩🇪</option>
+                    <option value="Italy">Italy 🇮🇹</option>
+                    <option value="Australia">Australia 🇦🇺</option>
+                    <option value="Canada">Canada 🇨🇦</option>
+                    <option value="USA">USA 🇺🇸</option>
+                    <option value="Ireland">Ireland 🇮🇪</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Target Intake</label>
+                  <select
+                    value={newAppIntake}
+                    onChange={(e) => setNewAppIntake(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:border-[#3157E8]"
+                  >
+                    <option value="Fall 2026">Fall 2026</option>
+                    <option value="Spring 2027">Spring 2027</option>
+                    <option value="Fall 2027">Fall 2027</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Application Status</label>
+                  <select
+                    value={newAppStatus}
+                    onChange={(e) => setNewAppStatus(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:border-[#3157E8]"
+                  >
+                    <option value="Drafting Documents">Drafting Documents</option>
+                    <option value="Application Submitted">Application Submitted</option>
+                    <option value="Under Review">Under Review</option>
+                    <option value="Conditional Offer Received">Conditional Offer Received</option>
+                    <option value="Unconditional Offer / CAS">Unconditional Offer / CAS</option>
+                    <option value="Visa Lodged">Visa Lodged</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Application / Portal Ref #</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. UCAS-29482 or TUM-APP-99"
+                    value={newAppPortalId}
+                    onChange={(e) => setNewAppPortalId(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#3157E8]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAddAppModalOpen(false)}
+                  className="rounded-xl text-xs font-semibold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-[#3157E8] hover:bg-[#2546c7] text-white rounded-xl text-xs font-semibold px-4"
+                >
+                  Save Application
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

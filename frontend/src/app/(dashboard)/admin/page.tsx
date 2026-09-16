@@ -10,11 +10,16 @@ import { RichTextEditor } from "@/features/content/components/RichTextEditor";
 import { CountryEditorModal } from "@/features/content/components/CountryEditorModal";
 import { Post, Country } from "@/features/content/types";
 import { getAdminPosts, deletePost, getAdminCountries, deleteCountry } from "@/features/content/api";
+import { Scholarship, ScholarshipCreatePayload } from "@/features/scholarships/types";
+import { getScholarships, createScholarship, updateScholarship, deleteScholarship } from "@/features/scholarships/api";
+import { ScholarshipEditorModal } from "@/features/scholarships/components/ScholarshipEditorModal";
+import { AdminStudentLead, AdminPlatformStats } from "@/features/admin/types";
+import { getAdminStudents, getAdminStats } from "@/features/admin/api";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<"overview" | "articles" | "destinations" | "students" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "articles" | "destinations" | "scholarships" | "students" | "settings">("overview");
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -24,6 +29,16 @@ export default function AdminDashboardPage() {
   const [isLoadingCountries, setIsLoadingCountries] = useState(false);
   const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
   const [editingCountry, setEditingCountry] = useState<Country | null>(null);
+
+  const [scholarships, setScholarships] = useState<Scholarship[]>([]);
+  const [isLoadingScholarships, setIsLoadingScholarships] = useState(false);
+  const [isScholarshipModalOpen, setIsScholarshipModalOpen] = useState(false);
+  const [editingScholarship, setEditingScholarship] = useState<Scholarship | null>(null);
+
+  const [students, setStudents] = useState<AdminStudentLead[]>([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+  const [stats, setStats] = useState<AdminPlatformStats | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -48,8 +63,65 @@ export default function AdminDashboardPage() {
         .catch(() => {
           setIsLoadingCountries(false);
         });
+
+      setIsLoadingScholarships(true);
+      getScholarships()
+        .then((data) => {
+          setScholarships(data);
+          setIsLoadingScholarships(false);
+        })
+        .catch(() => {
+          setIsLoadingScholarships(false);
+        });
+
+      setIsLoadingStudents(true);
+      getAdminStudents()
+        .then((data) => {
+          setStudents(data);
+          setIsLoadingStudents(false);
+        })
+        .catch(() => {
+          setIsLoadingStudents(false);
+        });
+
+      setIsLoadingStats(true);
+      getAdminStats()
+        .then((data) => {
+          setStats(data);
+          setIsLoadingStats(false);
+        })
+        .catch(() => {
+          setIsLoadingStats(false);
+        });
     }
   }, [user]);
+
+  const handleDeleteScholarship = async (id: number, title: string) => {
+    if (!confirm(`Are you sure you want to delete scholarship '${title}'?`)) return;
+    try {
+      await deleteScholarship(id);
+      setScholarships((prev) => prev.filter((s) => s.id !== id));
+      setNotification(`Scholarship '${title}' deleted.`);
+      setTimeout(() => setNotification(null), 3000);
+    } catch {
+      alert("Failed to delete scholarship.");
+    }
+  };
+
+  const handleSaveScholarship = async (payload: ScholarshipCreatePayload, id?: number) => {
+    if (id) {
+      const updated = await updateScholarship(id, payload);
+      setScholarships((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      setNotification(`Scholarship '${updated.title}' updated successfully.`);
+    } else {
+      const created = await createScholarship(payload);
+      setScholarships((prev) => [created, ...prev]);
+      setNotification(`Scholarship '${created.title}' published successfully.`);
+    }
+    setIsScholarshipModalOpen(false);
+    setEditingScholarship(null);
+    setTimeout(() => setNotification(null), 3500);
+  };
 
   const handleDeleteCountry = async (id: number, name: string) => {
     if (!confirm(`Are you sure you want to delete ${name}? Any linked articles will have their country unassigned.`)) return;
@@ -175,61 +247,39 @@ export default function AdminDashboardPage() {
     );
   }
 
+  const studentCount = stats ? stats.total_students : students.length;
+  const articlesCount = stats ? stats.published_articles : posts.length;
+  const destinationsCount = stats ? stats.live_destinations : countries.length;
+  const scholarshipsCount = stats ? stats.total_scholarships : scholarships.length;
+
   const statCards = [
     {
       title: "Registered Students",
-      count: "1,248",
-      change: "+18 this week",
+      count: isLoadingStats ? "..." : studentCount.toString(),
+      change: "Live DB Leads",
       icon: "👥",
       iconBg: "bg-blue-50 text-blue-600",
     },
     {
+      title: "Active Scholarships",
+      count: isLoadingStats ? "..." : scholarshipsCount.toString(),
+      change: "DAAD, Chevening +",
+      icon: "🎓",
+      iconBg: "bg-amber-50 text-amber-600",
+    },
+    {
       title: "Published Articles & Guides",
-      count: posts.length > 0 ? posts.length.toString() : "3",
+      count: isLoadingStats ? "..." : articlesCount.toString(),
       change: "Live in DB",
       icon: "📝",
       iconBg: "bg-emerald-50 text-emerald-600",
     },
     {
       title: "Study Destinations (Live)",
-      count: countries.length > 0 ? countries.length.toString() : "6",
+      count: isLoadingStats ? "..." : destinationsCount.toString(),
       change: "Active in DB",
       icon: "🌍",
       iconBg: "bg-indigo-50 text-indigo-600",
-    },
-    {
-      title: "Grounding Official Domains",
-      count: "148",
-      change: "100% verified .edu/.ac.uk",
-      icon: "🛡️",
-      iconBg: "bg-purple-50 text-purple-600",
-    },
-  ];
-
-  const recentStudents = [
-    {
-      name: "Hamza Sheikh",
-      email: "hamza.sheikh@example.pk",
-      target: "UK (MSc Computing)",
-      registered: "Today, 14:22",
-      status: "Profile 80%",
-      statusColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    },
-    {
-      name: "Ayesha Malik",
-      email: "ayesha.m@example.pk",
-      target: "Germany (Data Eng)",
-      registered: "Yesterday",
-      status: "Shortlisting",
-      statusColor: "bg-blue-50 text-blue-700 border-blue-200",
-    },
-    {
-      name: "Zainab Tariq",
-      email: "zainab.t@example.pk",
-      target: "Canada (MBA)",
-      registered: "2 days ago",
-      status: "Needs Attestation",
-      statusColor: "bg-amber-50 text-amber-700 border-amber-200",
     },
   ];
 
@@ -323,6 +373,21 @@ export default function AdminDashboardPage() {
               <span className="flex-1">Destinations (CMS)</span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-semibold">
                 {countries.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("scholarships")}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-colors ${
+                activeTab === "scholarships"
+                  ? "bg-[#3157E8] text-white font-bold"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <span>🎓</span>
+              <span className="flex-1">Scholarships (CMS)</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold">
+                {scholarships.length}
               </span>
             </button>
 
@@ -497,37 +562,49 @@ export default function AdminDashboardPage() {
 
                   <Card className="border border-[#E7EAF0] overflow-hidden">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                        <thead className="bg-[#F7F8FC] border-b border-[#E7EAF0] text-xs font-bold text-[#667085] uppercase tracking-wider">
-                          <tr>
-                            <th className="px-5 py-3">Student Name</th>
-                            <th className="px-5 py-3">Target Country/Program</th>
-                            <th className="px-5 py-3">Status</th>
-                            <th className="px-5 py-3">Registered</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#E7EAF0]">
-                          {recentStudents.map((s, idx) => (
-                            <tr key={idx} className="hover:bg-[#F7F8FC]/50 transition-colors">
-                              <td className="px-5 py-3.5">
-                                <div className="font-semibold text-[#152033]">{s.name}</div>
-                                <div className="text-xs text-[#667085]">{s.email}</div>
-                              </td>
-                              <td className="px-5 py-3.5 text-xs text-[#152033] font-medium">
-                                {s.target}
-                              </td>
-                              <td className="px-5 py-3.5">
-                                <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${s.statusColor}`}>
-                                  {s.status}
-                                </span>
-                              </td>
-                              <td className="px-5 py-3.5 text-xs text-[#667085]">
-                                {s.registered}
-                              </td>
+                      {isLoadingStudents ? (
+                        <div className="py-10 text-center text-xs text-[#667085]">Loading student leads...</div>
+                      ) : students.length > 0 ? (
+                        <table className="w-full text-left text-sm">
+                          <thead className="bg-[#F7F8FC] border-b border-[#E7EAF0] text-xs font-bold text-[#667085] uppercase tracking-wider">
+                            <tr>
+                              <th className="px-5 py-3">Student Name</th>
+                              <th className="px-5 py-3">Target Country</th>
+                              <th className="px-5 py-3">Completeness</th>
+                              <th className="px-5 py-3">Registered</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-[#E7EAF0]">
+                            {students.slice(0, 5).map((s) => (
+                              <tr key={s.id} className="hover:bg-[#F7F8FC]/50 transition-colors">
+                                <td className="px-5 py-3.5">
+                                  <div className="font-semibold text-[#152033]">{s.name}</div>
+                                  <div className="text-xs text-[#667085]">{s.email}</div>
+                                </td>
+                                <td className="px-5 py-3.5 text-xs text-[#152033] font-medium">
+                                  {s.target}
+                                </td>
+                                <td className="px-5 py-3.5">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                      <div
+                                        className="bg-[#3157E8] h-full rounded-full"
+                                        style={{ width: `${s.completeness}%` }}
+                                      ></div>
+                                    </div>
+                                    <span className="text-[11px] font-semibold text-slate-700">{s.completeness}%</span>
+                                  </div>
+                                </td>
+                                <td className="px-5 py-3.5 text-xs text-[#667085]">
+                                  {s.registered}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div className="py-10 text-center text-xs text-[#667085]">No students registered yet.</div>
+                      )}
                     </div>
                   </Card>
                 </div>
@@ -539,6 +616,23 @@ export default function AdminDashboardPage() {
                   </h2>
 
                   <Card className="p-5 border border-[#E7EAF0] space-y-3">
+                    <button
+                      onClick={() => {
+                        setEditingScholarship(null);
+                        setIsScholarshipModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between p-3 rounded-xl bg-[#F7F8FC] hover:bg-[#EEF2FF] text-[#152033] hover:text-[#3157E8] transition-colors border border-[#E7EAF0] text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">🎓</span>
+                        <div>
+                          <div className="text-xs font-bold">Add New Scholarship</div>
+                          <div className="text-[11px] text-[#667085]">Publish verified scholarship to student portal</div>
+                        </div>
+                      </div>
+                      <span>→</span>
+                    </button>
+
                     <button
                       onClick={() => setActiveTab("articles")}
                       className="w-full flex items-center justify-between p-3 rounded-xl bg-[#F7F8FC] hover:bg-[#EEF2FF] text-[#152033] hover:text-[#3157E8] transition-colors border border-[#E7EAF0] text-left"
@@ -899,6 +993,147 @@ export default function AdminDashboardPage() {
             />
           )}
 
+          {/* Scholarships CMS Tab */}
+          {activeTab === "scholarships" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-[#152033] tracking-tight flex items-center gap-2.5">
+                    <span>🎓</span> Scholarships CMS & Database
+                  </h1>
+                  <p className="text-sm text-[#667085] mt-1">
+                    Manage fully funded international scholarships (DAAD, Chevening, Erasmus Mundus, etc.) displayed to students.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    setEditingScholarship(null);
+                    setIsScholarshipModalOpen(true);
+                  }}
+                  className="rounded-xl bg-[#3157E8] hover:bg-[#2544BA] text-white gap-2"
+                >
+                  <span>+</span> Add Scholarship
+                </Button>
+              </div>
+
+              <Card className="border border-[#E7EAF0] overflow-hidden">
+                <div className="overflow-x-auto">
+                  {isLoadingScholarships ? (
+                    <div className="py-12 flex flex-col items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3157E8]"></div>
+                      <span className="text-xs text-[#667085]">Loading scholarships from database...</span>
+                    </div>
+                  ) : scholarships.length > 0 ? (
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-[#F7F8FC] border-b border-[#E7EAF0] text-xs font-bold text-[#667085] uppercase tracking-wider">
+                        <tr>
+                          <th className="px-5 py-3">Scholarship Title & Provider</th>
+                          <th className="px-5 py-3">Country</th>
+                          <th className="px-5 py-3">Coverage & Degree</th>
+                          <th className="px-5 py-3">Deadline</th>
+                          <th className="px-5 py-3">Status</th>
+                          <th className="px-5 py-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#E7EAF0]">
+                        {scholarships.map((s) => (
+                          <tr key={s.id} className="hover:bg-[#F7F8FC]/50 transition-colors">
+                            <td className="px-5 py-4">
+                              <div className="font-bold text-[#152033] line-clamp-1">{s.title}</div>
+                              <div className="text-xs text-[#667085] mt-0.5">{s.provider}</div>
+                              {s.application_link && (
+                                <a
+                                  href={s.application_link}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[11px] text-[#3157E8] hover:underline inline-flex items-center gap-0.5 mt-1"
+                                >
+                                  Official Link ↗
+                                </a>
+                              )}
+                            </td>
+                            <td className="px-5 py-4 text-xs font-medium text-[#152033]">
+                              <span className="mr-1.5 text-base">{s.country_flag_emoji || "🌐"}</span>
+                              {s.country_name || "Global / Multi-country"}
+                            </td>
+                            <td className="px-5 py-4">
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[11px] border border-emerald-200">
+                                {s.coverage_type}
+                              </span>
+                              <div className="text-xs text-[#667085] mt-1">{s.degree_level}</div>
+                            </td>
+                            <td className="px-5 py-4 text-xs">
+                              <span className="font-semibold text-slate-900">{s.deadline_date}</span>
+                            </td>
+                            <td className="px-5 py-4">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                                  s.is_active
+                                    ? "bg-[#EAF8F1] text-[#16A36A] border-[#C6F0D8]"
+                                    : "bg-gray-100 text-gray-600 border-gray-200"
+                                }`}
+                              >
+                                ● {s.is_active ? "Active" : "Archived"}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                              <div className="flex items-center justify-end gap-3">
+                                <button
+                                  onClick={() => {
+                                    setEditingScholarship(s);
+                                    setIsScholarshipModalOpen(true);
+                                  }}
+                                  className="text-xs font-semibold text-[#3157E8] hover:underline"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteScholarship(s.id, s.title)}
+                                  className="text-xs font-semibold text-red-600 hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="text-3xl mb-2">🎓</div>
+                      <p className="text-sm text-[#667085]">No scholarships found.</p>
+                      <Button
+                        onClick={() => {
+                          setEditingScholarship(null);
+                          setIsScholarshipModalOpen(true);
+                        }}
+                        size="sm"
+                        className="mt-3 rounded-xl bg-[#3157E8] text-white"
+                      >
+                        + Add First Scholarship
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* Scholarship Editor Modal */}
+          {isScholarshipModalOpen && (
+            <ScholarshipEditorModal
+              isOpen={isScholarshipModalOpen}
+              onClose={() => {
+                setIsScholarshipModalOpen(false);
+                setEditingScholarship(null);
+              }}
+              onSave={handleSaveScholarship}
+              scholarship={editingScholarship}
+              countries={countries}
+            />
+          )}
+
           {activeTab === "students" && (
             <div className="space-y-6">
               <div>
@@ -906,49 +1141,72 @@ export default function AdminDashboardPage() {
                   <span>👥</span> Registered Students & Inquiries
                 </h1>
                 <p className="text-sm text-[#667085] mt-1">
-                  All student leads registered through UniCompass portal with application milestone statuses.
+                  All student leads registered through UniCompass portal with live profile completeness and shortlisted programs.
                 </p>
               </div>
 
               <Card className="border border-[#E7EAF0] overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-[#F7F8FC] border-b border-[#E7EAF0] text-xs font-bold text-[#667085] uppercase tracking-wider">
-                      <tr>
-                        <th className="px-5 py-3">Student Name</th>
-                        <th className="px-5 py-3">Target Country</th>
-                        <th className="px-5 py-3">Status</th>
-                        <th className="px-5 py-3">Registered</th>
-                        <th className="px-5 py-3 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#E7EAF0]">
-                      {recentStudents.map((s, idx) => (
-                        <tr key={idx} className="hover:bg-[#F7F8FC]/50 transition-colors">
-                          <td className="px-5 py-4">
-                            <div className="font-semibold text-[#152033]">{s.name}</div>
-                            <div className="text-xs text-[#667085]">{s.email}</div>
-                          </td>
-                          <td className="px-5 py-4 text-xs font-medium text-[#152033]">
-                            {s.target}
-                          </td>
-                          <td className="px-5 py-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${s.statusColor}`}>
-                              {s.status}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 text-xs text-[#667085]">
-                            {s.registered}
-                          </td>
-                          <td className="px-5 py-4 text-right">
-                            <Button size="sm" variant="outline" className="text-xs rounded-lg">
-                              Contact Lead
-                            </Button>
-                          </td>
+                  {isLoadingStudents ? (
+                    <div className="py-12 flex flex-col items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3157E8]"></div>
+                      <span className="text-xs text-[#667085]">Loading student leads...</span>
+                    </div>
+                  ) : students.length > 0 ? (
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-[#F7F8FC] border-b border-[#E7EAF0] text-xs font-bold text-[#667085] uppercase tracking-wider">
+                        <tr>
+                          <th className="px-5 py-3">Student Name</th>
+                          <th className="px-5 py-3">Target Country</th>
+                          <th className="px-5 py-3">Profile Completeness</th>
+                          <th className="px-5 py-3">Shortlisted</th>
+                          <th className="px-5 py-3">Registered</th>
+                          <th className="px-5 py-3 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-[#E7EAF0]">
+                        {students.map((s) => (
+                          <tr key={s.id} className="hover:bg-[#F7F8FC]/50 transition-colors">
+                            <td className="px-5 py-4">
+                              <div className="font-semibold text-[#152033]">{s.name}</div>
+                              <div className="text-xs text-[#667085]">{s.email}</div>
+                            </td>
+                            <td className="px-5 py-4 text-xs font-medium text-[#152033]">
+                              {s.target}
+                            </td>
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-2">
+                                <div className="w-20 bg-slate-100 rounded-full h-2 overflow-hidden">
+                                  <div
+                                    className="bg-[#3157E8] h-full rounded-full"
+                                    style={{ width: `${s.completeness}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-xs font-bold text-slate-700">{s.completeness}%</span>
+                              </div>
+                            </td>
+                            <td className="px-5 py-4 text-xs font-bold text-slate-700">
+                              {s.shortlisted_count} programs
+                            </td>
+                            <td className="px-5 py-4 text-xs text-[#667085]">
+                              {s.registered}
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                              <a href={`mailto:${s.email}?subject=UniCompass Counselor Consultation`}>
+                                <Button size="sm" variant="outline" className="text-xs rounded-lg">
+                                  Contact Lead
+                                </Button>
+                              </a>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="text-center py-12 text-sm text-[#667085]">
+                      No student accounts found in database.
+                    </div>
+                  )}
                 </div>
               </Card>
             </div>

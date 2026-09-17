@@ -58,12 +58,15 @@ export const ProgramFilterSidebar: React.FC<ProgramFilterSidebarProps> = ({
   ];
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 space-y-6 shadow-sm">
+    <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 space-y-6 shadow-sm max-h-[calc(100vh-8rem)] overflow-y-auto overscroll-contain custom-scrollbar">
       {/* Header & Reset */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+      <div className="sticky -top-5 sm:-top-6 bg-white pt-1 pb-4 z-10 flex items-center justify-between border-b border-slate-100">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-[#3157E8]" />
           <h2 className="text-sm font-bold text-[#152033]">Filter & Match</h2>
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+            {totalMatches}
+          </span>
         </div>
         <button
           type="button"

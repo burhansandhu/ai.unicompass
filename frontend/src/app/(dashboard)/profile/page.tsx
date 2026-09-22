@@ -23,6 +23,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { SavedScholarshipItem } from "@/features/scholarships/types";
 import { getSavedScholarships, toggleSaveScholarship } from "@/features/scholarships/api";
 import { ScholarshipCard } from "@/features/scholarships/components/ScholarshipCard";
+import { sendChatMessage } from "@/features/chat/api";
 import { Input } from "@/components/ui/input";
 import {
   GraduationCap,
@@ -141,7 +142,7 @@ function ProfilePageContent() {
   const [advisorInput, setAdvisorInput] = useState("");
   const [isAdvisorThinking, setIsAdvisorThinking] = useState(false);
 
-  const handleSendAdvisorMessage = (questionText?: string) => {
+  const handleSendAdvisorMessage = async (questionText?: string) => {
     const q = (questionText || advisorInput).trim();
     if (!q || isAdvisorThinking) return;
 
@@ -152,39 +153,55 @@ function ProfilePageContent() {
       timestamp: "Just now",
     };
 
-    setChatMessages((prev) => [...prev, userMsg]);
+    const updatedHistory = [...chatMessages, userMsg];
+    setChatMessages(updatedHistory);
     setAdvisorInput("");
     setIsAdvisorThinking(true);
 
-    setTimeout(() => {
-      let reply = "";
-      const lower = q.toLowerCase();
+    try {
+      const profileContext = {
+        full_name: user?.full_name,
+        cgpa: profile?.cgpa,
+        cgpa_scale: profile?.cgpa_scale,
+        degree_level: profile?.degree_level || profile?.target_degree_level,
+        field_of_study: profile?.degree_field || profile?.target_field,
+        target_intake: profile?.target_intake,
+        target_destinations: profile?.target_destinations,
+        moi_eligible: profile?.moi_eligible,
+        shortlisted_count: shortlistedItems.length,
+      };
 
-      if (lower.includes("waiver") || lower.includes("moi") || lower.includes("english")) {
-        reply = `**Medium of Instruction (MOI) & English Waiver Rules for Pakistani Students:**\n\n- **United Kingdom:** Many UK universities (e.g. Coventry, Hertfordshire, Greenwich, Chester) accept an official MOI letter issued by your Pakistani university (NUST, FAST, COMSATS, Punjab University, UET, etc.) if your Bachelor's degree was taught in English, granting a direct IELTS exemption.\n- **Germany:** English-taught Master's programs generally accept an MOI certificate from your registrar, though specific competitive universities (TUM, LMU, RWTH Aachen) may mandate IELTS (6.5 minimum).\n- **Key Requirement:** Your MOI certificate must explicitly certify: *"All coursework, examinations, and project theses were conducted entirely in the English language."*`;
-      } else if (lower.includes("block") || lower.includes("sperrkonto") || lower.includes("bank") || lower.includes("budget") || lower.includes("cost") || lower.includes("pkr")) {
-        reply = `**Embassy Financial Requirements & PKR Conversions (2026/2027):**\n\n- **Germany Blocked Account (*Sperrkonto*):** Mandatory €11,904/year (€992/month). Converted to Pakistani Rupees at ~305 PKR/EUR, this is approximately **3,630,000 PKR**.\n- **United Kingdom:** 28-day consecutive bank statement showing unpaid tuition balance + UKVI living expenses (£1,023/month outside London or £1,334/month inside London for 9 months).\n- **Italy (DSU Grant):** Italian universities have very affordable tuition (€500–€2,500/year). Pakistani students can qualify for regional scholarships (DSU / ER.GO) providing up to €7,000/year stipends + free accommodation based on your family's annual income certificate (FBR tax returns).`;
-      } else if (lower.includes("attestation") || lower.includes("hec") || lower.includes("mofa") || lower.includes("ibcc")) {
-        reply = `**Step-by-Step Degree Attestation Guide for Pakistani Students:**\n\n1. **IBCC (Inter Board Coordination Commission):** Attest your original Matric (SSC) and FSc (HSSC) certificates and marksheets first.\n2. **HEC (Higher Education Commission):** Create an account on the HEC e-portal (eservices.hec.gov.pk). Verify all degree credentials online, schedule an appointment, or use courier (TCS/Leopard) to get your Bachelor's degree and transcripts stamped.\n3. **MOFA (Ministry of Foreign Affairs):** After IBCC and HEC stamps, take all originals to your nearest MOFA liaison office (Islamabad, Lahore, Karachi, Peshawar, Quetta) for final attestation. Most European embassies require MOFA stamps within 6 months of your visa interview!`;
-      } else if (lower.includes("visa") || lower.includes("appointment") || lower.includes("vfs") || lower.includes("gerry")) {
-        reply = `**Visa Appointments & Submission Pipeline:**\n\n- **Germany:** German embassy appointments in Islamabad and Karachi book months in advance through the embassy waitlist portal. Register as soon as you receive your conditional or unconditional admission offer!\n- **United Kingdom:** Uses VFS Global / Gerry's in major Pakistani cities. Once your university issues your CAS (Confirmation of Acceptance for Studies), Priority (5-day) and Super Priority (24-hour) processing options are available.\n- **Track your deadlines** on our Deadline Tracker tab to ensure your 28-day bank statement matures right on time!`;
-      } else {
-        const studentCgpa = profile?.cgpa ? `${profile.cgpa} / ${profile.cgpa_scale || 4.0}` : "not set in your profile";
-        const intake = profile?.target_intake || "Fall 2026";
-        reply = `**Advising for ${user?.full_name || "Student"}:**\n\nBased on your registered profile details:\n- **Academic CGPA:** ${studentCgpa}\n- **Target Intake:** ${intake}\n- **Shortlisted Universities:** ${shortlistedItems.length} programs saved\n\nFor Pakistani students applying for ${intake}, we recommend submitting university applications by early summer to secure early-bird fee discounts and guarantee your visa appointment slot before peak August delays. What specific topic would you like to explore next? (e.g., Scholarships, IELTS waivers, or Program matching)`;
-      }
+      const formattedMessages = updatedHistory.map((m) => ({
+        role: (m.sender === "advisor" ? "advisor" : "user") as "user" | "advisor" | "model",
+        text: m.text,
+      }));
+
+      const res = await sendChatMessage({
+        messages: formattedMessages,
+        profile_context: profileContext,
+      });
 
       const advisorMsg: ChatMessage = {
         id: `msg-${Date.now() + 1}`,
         sender: "advisor",
-        text: reply,
+        text: res.reply,
         timestamp: "Just now",
       };
-
       setChatMessages((prev) => [...prev, advisorMsg]);
+    } catch (err) {
+      console.error("Advisor chat error:", err);
+      const fallbackMsg: ChatMessage = {
+        id: `msg-${Date.now() + 1}`,
+        sender: "advisor",
+        text: "As-salamu alaykum! I encountered a temporary network delay. Please ask your question again, or specify your CGPA and preferred country!",
+        timestamp: "Just now",
+      };
+      setChatMessages((prev) => [...prev, fallbackMsg]);
+    } finally {
       setIsAdvisorThinking(false);
-    }, 600);
+    }
   };
+
 
   const fetchTimeline = (programId?: number) => {
     setIsLoadingTimeline(true);

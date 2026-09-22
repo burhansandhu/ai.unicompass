@@ -24,6 +24,7 @@ from app.features.discovery.router import router as discovery_router
 from app.features.timeline.router import router as timeline_router
 from app.features.scholarships.router import router as scholarships_router
 from app.features.users.router import router as admin_router
+from app.features.chat.router import router as chat_router
 from sqlalchemy import select
 
 
@@ -115,6 +116,8 @@ app.include_router(scholarships_router, prefix=settings.API_V1_STR)
 app.include_router(scholarships_router)
 app.include_router(admin_router, prefix=settings.API_V1_STR)
 app.include_router(admin_router)
+app.include_router(chat_router, prefix=settings.API_V1_STR)
+app.include_router(chat_router)
 
 
 @app.get("/", tags=["Health"])

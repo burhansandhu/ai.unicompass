@@ -62,8 +62,10 @@ async def generate_advisor_reply(
     # Format message history for Gemini API
     formatted_contents = []
     for msg in messages:
-        role = "model" if msg.role in ["advisor", "model", "assistant"] else "user"
-        clean_text = msg.text.strip()
+        msg_role = msg.role if hasattr(msg, "role") else (msg.get("role") if isinstance(msg, dict) else "user")
+        msg_text = msg.text if hasattr(msg, "text") else (msg.get("text", "") if isinstance(msg, dict) else str(msg))
+        role = "model" if msg_role in ["advisor", "model", "assistant"] else "user"
+        clean_text = msg_text.strip()
         if clean_text:
             formatted_contents.append({
                 "role": role,
